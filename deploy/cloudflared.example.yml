@@ -1,9 +1,0 @@
-# Copy to ~/.cloudflared/config.yml and fill in the tunnel id.
-# The credentials file comes from `cloudflared tunnel create agentbench`. Keep it secret.
-tunnel: <TUNNEL_ID>
-credentials-file: /home/agentbench/.cloudflared/<TUNNEL_ID>.json
-
-ingress:
-  - hostname: agentbench.netchamp.dev
-    service: http://127.0.0.1:8080
-  - service: http_status:404

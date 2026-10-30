@@ -1,0 +1,18 @@
+# agentbench.netchamp.dev is routed by the Frappe Cloud v2 proxy (proxy.bom.frappe.cloud)
+# to this VM. The proxy passes TLS through and may prepend a PROXY protocol header
+# from its private ranges, so accept the header only from those.
+{
+	servers {
+		listener_wrappers {
+			proxy_protocol {
+				allow fdaa::/16 10.0.0.0/8
+			}
+			tls
+		}
+	}
+}
+
+agentbench.netchamp.dev {
+	encode gzip
+	reverse_proxy 127.0.0.1:8080
+}
