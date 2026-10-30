@@ -14,6 +14,8 @@ cd "$(dirname "$0")"
 [ -f .env ] && set -a && . ./.env && set +a
 harbor() { uv run --quiet harbor "$@"; }
 run() { harbor run -p tasks -o jobs -n "${CONCURRENCY:-4}" "$@"; }
+# After an agent run, refresh the data the dashboard serves.
+run_agent() { run "$@"; uv run --quiet report.py --json dashboard/results.json; }
 
 command="${1:-}"; shift || true
 case "$command" in
@@ -24,13 +26,13 @@ case "$command" in
     run -a nop "$@" ;;
   claude)
     model="${1:-claude-opus-5-5}"; shift || true
-    run -a claude-code -m "anthropic/$model" "$@" ;;
+    run_agent -a claude-code -m "anthropic/$model" "$@" ;;
   codex)
     model=(); [ -n "${1:-}" ] && [[ "$1" != -* ]] && { model=(-m "openai/$1"); shift; }
-    CODEX_FORCE_AUTH_JSON=1 run -a codex "${model[@]}" "$@" ;;
+    CODEX_FORCE_AUTH_JSON=1 run_agent -a codex "${model[@]}" "$@" ;;
   deepseek)
     : "${DEEPSEEK_BASE_URL:?Set DEEPSEEK_BASE_URL in .env}" "${DEEPSEEK_API_KEY:?Set DEEPSEEK_API_KEY in .env}"
-    OPENAI_API_KEY="$DEEPSEEK_API_KEY" run -a pi -m "deepseek/${DEEPSEEK_MODEL:-deepseek-v4.1-flash}" \
+    OPENAI_API_KEY="$DEEPSEEK_API_KEY" run_agent -a pi -m "deepseek/${DEEPSEEK_MODEL:-deepseek-v4.1-flash}" \
       --ak base_url="$DEEPSEEK_BASE_URL" --ak model_api=openai-completions "$@" ;;
   *)
     sed -n '2,10p' "$0"; exit 1 ;;

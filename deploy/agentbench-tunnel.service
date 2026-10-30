@@ -1,0 +1,10 @@
+[Unit]
+Description=Cloudflare tunnel for agentbench.netchamp.dev
+After=network-online.target
+
+[Service]
+ExecStart=/usr/bin/cloudflared tunnel --no-autoupdate --config %h/.cloudflared/config.yml run
+Restart=always
+
+[Install]
+WantedBy=default.target
