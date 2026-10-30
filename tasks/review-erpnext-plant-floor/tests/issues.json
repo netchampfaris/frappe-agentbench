@@ -10,6 +10,7 @@
         520,
         532
       ],
+      "function": "update_job_card",
       "note": "Whitelisted update_job_card takes a caller-supplied `method` and calls doc.run_method(method, **kwargs) on any Job Card with no allow-list and no permission check, so any logged-in user can invoke arbitrary Document methods (cancel, delete, db_set, ...) with arbitrary kwargs on any Job Card. Fixed by adding ALLOWED_JOB_CARD_METHODS and a write check on the Job Card.",
       "ghsa": "GHSA-c496-q7g2-62vv",
       "fix_commit": "8db1eb0d27702e85db1a1cd4ed791dcc577adff8"
@@ -22,6 +23,7 @@
         212,
         218
       ],
+      "function": "start_job",
       "note": "Workstation.start_job loads any Job Card by caller-supplied name, appends a time log and saves with ignore_permissions=True; only read on the Workstation is needed. Fixed by doc.check_permission('write') and removing ignore_permissions.",
       "ghsa": "GHSA-fmr9-rm6j-cfpq",
       "fix_commit": "cf127e89005fd45038870bac95feb7009e95f45f"
@@ -34,6 +36,7 @@
         220,
         232
       ],
+      "function": "complete_job",
       "note": "Workstation.complete_job edits time logs/completed qty of any Job Card, saves with ignore_permissions=True and then submits it, with no permission check on the Job Card. Fixed by doc.check_permission('submit') and dropping ignore_permissions (a64466561f).",
       "ghsa": "GHSA-fmr9-rm6j-cfpq",
       "fix_commit": "cf127e89005fd45038870bac95feb7009e95f45f"
@@ -46,6 +49,7 @@
         319,
         322
       ],
+      "function": "get_raw_materials",
       "note": "Whitelisted get_raw_materials reads Job Card + Job Card Item rows (items, warehouses, quantities) and Bin stock for any job card via frappe.get_all, which skips permission checks. Fixed by frappe.has_permission('Job Card', 'read', doc=job_card, throw=True).",
       "ghsa": "GHSA-fmr9-rm6j-cfpq",
       "fix_commit": "cf127e89005fd45038870bac95feb7009e95f45f"
@@ -58,6 +62,7 @@
         496,
         504
       ],
+      "function": "get_workstations",
       "note": "get_workstations copies the raw on_status_image/off_status_image field values into status_image, which visual_plant_floor_template.html (line 11) interpolates into an <img src=\"...\"> attribute without escaping. A user who can edit a Workstation can set the image value to `x\" onerror=...` and run script in the browser of anyone opening the Plant Floor. Fixed by frappe.utils.escape_html on both values (off image in 2d387002d9, on image in 25dfcb17c8). A finding at the template sink (VPT line 11) is equivalent.",
       "ghsa": "GHSA-8pr6-r75h-h8xx",
       "fix_commit": "2d387002d93665d63ddf319d2896c3654c5c770c"
@@ -82,6 +87,7 @@
         68,
         72
       ],
+      "function": "get_stock_summary",
       "note": "Whitelisted get_stock_summary returns Bin quantities (actual, projected, reserved) plus item name/group/image for any warehouse, item and item group via a query-builder query that applies no permissions. Any logged-in user can read stock levels of warehouses they have no access to. Fixed by has_permission checks on Warehouse, Item and Item Group.",
       "ghsa": "GHSA-48wc-j2qh-rcgw",
       "fix_commit": "0a047b410a5570cd1c2f590db2685e71dfa7f3fc"
@@ -106,6 +112,7 @@
         462,
         477
       ],
+      "function": "get_workstations",
       "note": "Whitelisted get_workstations(**kwargs) runs a raw frappe.qb query on Workstation with no permission check, so any logged-in user can list name, description, status and status images of every workstation on any plant floor. Fixed by frappe.has_permission('Workstation', 'read', throw=True).",
       "fix_commit": "cf127e89005fd45038870bac95feb7009e95f45f"
     },
@@ -117,6 +124,7 @@
         535,
         537
       ],
+      "function": "validate_job_card",
       "note": "Whitelisted validate_job_card reads status and for_quantity of any Job Card with frappe.db.get_value and returns them (or echoes the status in an error) without a permission check. Fixed by frappe.has_permission('Job Card', 'read', doc=job_card, throw=True).",
       "fix_commit": "cf127e89005fd45038870bac95feb7009e95f45f"
     }
@@ -129,6 +137,7 @@
         165,
         177
       ],
+      "function": "validate_overlap_for_operation_timings",
       "note": "Raw frappe.db.sql_list, but every value is passed as a %s parameter; it runs from on_update of a document the user already saved."
     },
     {
@@ -138,6 +147,7 @@
         185,
         197
       ],
+      "function": "update_bom_operation",
       "note": "Raw SELECT/UPDATE on BOM Operation is fully parameterised and only runs inside the Workstation save lifecycle, which Frappe permission-checks."
     },
     {
@@ -147,6 +157,7 @@
         440,
         448
       ],
+      "function": "check_workstation_for_holiday",
       "note": "Internal helper (not whitelisted); holiday_list and dates are passed as parameters."
     }
   ]

@@ -3,48 +3,56 @@
     {
       "file": "lms/lms/utils.py",
       "line": 1115,
+      "function": "get_course_details",
       "category": "security",
       "summary": "get_course_details() is allow_guest and returns full details (description, price, lessons, instructors) for any course name, including unpublished courses, with no published/can-modify check. Fixed by returning {} for unpublished courses unless can_modify_course()."
     },
     {
       "file": "lms/lms/utils.py",
       "line": 1398,
+      "function": "get_batch_details",
       "category": "security",
       "summary": "get_batch_details() (allow_guest) sets batch_details.students to the full list of enrolled members' user IDs (emails) for every caller who can see the batch, e.g. anyone for a published batch. Fixed by returning the list only to batch admins (can_modify_batch) and just [session user] to enrolled students."
     },
     {
       "file": "lms/lms/utils.py",
       "line": 2059,
+      "function": "enroll_in_batch",
       "category": "security",
       "summary": "Whitelisted enroll_in_batch() only checks duplicates and seat count; it does not check that the batch is published, allows self-enrollment, or (for paid batches) that payment_name refers to a received payment, so students can self-enroll into unpublished or paid batches. Fixed by validate_enrollment_eligibility()."
     },
     {
       "file": "lms/lms/utils.py",
       "line": 2170,
+      "function": "enroll_in_program",
       "category": "security",
       "summary": "enroll_in_program() inserts an LMS Program Member with ignore_permissions for any program name without checking that the program is published. Fixed by rejecting unpublished programs."
     },
     {
       "file": "lms/lms/doctype/lms_enrollment/lms_enrollment.py",
       "line": 78,
+      "function": "create_membership",
       "category": "security",
       "summary": "Whitelisted create_membership() only refuses when disable_self_learning is set; it enrolls in unpublished and paid courses without a payment check, and also accepts an arbitrary member argument. Fixed by validate_course_enrollment_eligibility() (published + payment checks); the member parameter was only locked down later."
     },
     {
       "file": "lms/lms/doctype/lms_batch_enrollment/lms_batch_enrollment.py",
       "line": 17,
+      "function": "validate",
       "category": "security",
       "summary": "LMSBatchEnrollment.validate() has no check that a non-staff creator is enrolling themselves, so a student with create permission can create LMS Batch Enrollment rows for other users (and, via validate_course_enrollment, auto-create LMS Enrollments for them). Fixed by validate_owner() requiring Moderator/Batch Evaluator when owner != member."
     },
     {
       "file": "lms/lms/doctype/lms_certificate/lms_certificate.py",
       "line": 116,
+      "function": "create_certificate",
       "category": "security",
       "summary": "Whitelisted create_certificate(course) issues an LMS Certificate for the caller with ignore_permissions without checking enrollment, that certification is enabled, or that progress is 100%; LMSCertificate.validate() only checks duplicates. Fixed by validate_certification_eligibility()."
     },
     {
       "file": "lms/lms/doctype/lms_certificate/lms_certificate.py",
       "line": 108,
+      "function": "has_website_permission",
       "category": "security",
       "summary": "has_website_permission() grants read/print on every LMS Certificate regardless of its published flag, so unpublished certificates (and member details) are viewable by anyone via the website/print routes. Fixed by also requiring doc.published."
     }

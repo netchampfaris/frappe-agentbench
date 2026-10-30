@@ -10,6 +10,7 @@
         1118,
         1120
       ],
+      "function": "resend_payment_email",
       "note": "Module-level whitelisted resend_payment_email(docname) loads any Payment Request and calls send_email() with no permission or state check, so any logged-in user can make the site email payment links for documents they cannot read. Fixed by replacing it with a POST-only doc method (permission-checked by run_doc_method) that also validates docstatus/type/status, and deduplicating the job.",
       "ghsa": "GHSA-q8wq-q35q-gj8h",
       "fix_commit": "0659bd704968543d95af0ba225c5e3aa4a29d987"
@@ -22,6 +23,7 @@
         1331,
         1336
       ],
+      "function": "get_available_payment_schedules",
       "note": "get_available_payment_schedules does frappe.get_doc(reference_doctype, reference_name) for any caller-supplied doctype and name and returns its payment_schedule rows (due dates, amounts) without checking read permission. Fixed by ref_doc.check_permission().",
       "fix_commit": "0e4b384af1c3e565f4ac65190b1c7235e760a8bc"
     },
@@ -33,6 +35,7 @@
         1217,
         1228
       ],
+      "function": "get_subscription_details",
       "note": "Whitelisted get_subscription_details returns the subscription plans of any Sales Invoice (via frappe.get_all and frappe.get_doc on Subscription) with no read check on the invoice or subscription. Fixed by frappe.has_permission(reference_doctype, 'read', reference_name, throw=True) in a feature fix released in v16.34.0 (not an explicit security commit).",
       "fix_commit": "4cfa42921f32377c725cd22d3912b9ed140fbd9f"
     },
@@ -44,6 +47,7 @@
         169,
         173
       ],
+      "function": "convert_mt940_to_csv",
       "note": "Whitelisted convert_mt940_to_csv (GET allowed) loads any Bank Statement Import without a permission check, reads a caller-supplied file via frappe.utils.file_manager.get_file (no File permission check) and attaches a new private file to that import. Fixed by doc.check_permission('write') and methods=['POST'].",
       "fix_commit": "2f82e0dd36fe3b96c04e8c24999863dd32c6db99"
     },
@@ -55,6 +59,7 @@
         234,
         240
       ],
+      "function": "get_preview_from_template",
       "note": "get_preview_from_template returns the parsed contents of any import's file (or a caller-supplied import_file/google_sheets_url) for any Bank Statement Import without a read check, exposing bank transaction data. Fixed by bsi.check_permission().",
       "fix_commit": "2f82e0dd36fe3b96c04e8c24999863dd32c6db99"
     },
@@ -66,6 +71,7 @@
         243,
         246
       ],
+      "function": "form_start_import",
       "note": "form_start_import starts the background import of any Bank Statement Import with no write check; the job rewrites the Bank's transaction mapping (bank.save) and inserts Bank Transactions. Fixed by bsi.check_permission('write').",
       "fix_commit": "2f82e0dd36fe3b96c04e8c24999863dd32c6db99"
     },
@@ -77,6 +83,7 @@
         249,
         257
       ],
+      "function": "download_errored_template",
       "note": "download_errored_template and download_import_log return errored rows and import logs of any Bank Statement Import without a read check. Fixed by check_permission() in both.",
       "fix_commit": "2f82e0dd36fe3b96c04e8c24999863dd32c6db99"
     },
@@ -88,6 +95,7 @@
         391,
         396
       ],
+      "function": "get_import_status",
       "note": "get_import_status returns status and success/failure counts of any import via frappe.get_doc and frappe.get_all with no permission check. Fixed by data_import.check_permission().",
       "fix_commit": "9a71ab4d793f410ed3ecc779e46a9007ee77182b"
     },
@@ -99,6 +107,7 @@
         159,
         174
       ],
+      "function": "validate_reference_document",
       "note": "validate() never checks that the user can read the reference document or that it belongs to the same company; validate_reference_document only checks the fields are set, and validate_payment_request_amount loads the reference with frappe.get_doc. A user with Payment Request create can therefore create requests against any document of any doctype/company and obtain its amounts and party details. Fixed by ref_doc.check_permission('read') plus a company match (8ee84946f9) and an allow-list of reference doctypes (260770952d).",
       "fix_commit": "8ee84946f9d5f034628b40758155d8fa8014918b"
     },
@@ -110,6 +119,7 @@
         618,
         628
       ],
+      "function": "get_message",
       "note": "get_message renders the user-editable Payment Request message as a Jinja template with full Frappe safe globals (frappe.db.get_value, frappe.get_all and similar, which bypass permissions) and loads the reference document without a read check, so anyone who can write a Payment Request can read arbitrary data into the email/preview. Fixed by frappe.render_template(..., restrict_globals=True).",
       "fix_commit": "13d3101f12a9d661cd6da6a3a17966ef0cbbb042"
     }
@@ -122,6 +132,7 @@
         1292,
         1300
       ],
+      "function": "get_open_payment_requests_query",
       "note": "Uses frappe.get_list, which applies the caller's permissions and user permissions; txt is bound through a filter, not string-formatted SQL."
     }
   ]

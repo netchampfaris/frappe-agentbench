@@ -3,60 +3,70 @@
     {
       "file": "erpnext/manufacturing/doctype/workstation/workstation.py",
       "line": 520,
+      "function": "update_job_card",
       "category": "security",
       "summary": "Whitelisted update_job_card takes a caller-supplied `method` and calls doc.run_method(method, **kwargs) on any Job Card with no allow-list and no permission check, so any logged-in user can invoke arbitrary Document methods (cancel, delete, db_set, ...) with arbitrary kwargs on any Job Card. Fixed by adding ALLOWED_JOB_CARD_METHODS and a write check on the Job Card."
     },
     {
       "file": "erpnext/manufacturing/doctype/workstation/workstation.py",
       "line": 212,
+      "function": "start_job",
       "category": "security",
       "summary": "Workstation.start_job loads any Job Card by caller-supplied name, appends a time log and saves with ignore_permissions=True; only read on the Workstation is needed. Fixed by doc.check_permission('write') and removing ignore_permissions."
     },
     {
       "file": "erpnext/manufacturing/doctype/workstation/workstation.py",
       "line": 220,
+      "function": "complete_job",
       "category": "security",
       "summary": "Workstation.complete_job edits time logs/completed qty of any Job Card, saves with ignore_permissions=True and then submits it, with no permission check on the Job Card. Fixed by doc.check_permission('submit') and dropping ignore_permissions (a64466561f)."
     },
     {
       "file": "erpnext/manufacturing/doctype/workstation/workstation.py",
       "line": 319,
+      "function": "get_raw_materials",
       "category": "security",
       "summary": "Whitelisted get_raw_materials reads Job Card + Job Card Item rows (items, warehouses, quantities) and Bin stock for any job card via frappe.get_all, which skips permission checks. Fixed by frappe.has_permission('Job Card', 'read', doc=job_card, throw=True)."
     },
     {
       "file": "erpnext/manufacturing/doctype/workstation/workstation.py",
       "line": 496,
+      "function": "get_workstations",
       "category": "security",
       "summary": "get_workstations copies the raw on_status_image/off_status_image field values into status_image, which visual_plant_floor_template.html (line 11) interpolates into an <img src=\"...\"> attribute without escaping. A user who can edit a Workstation can set the image value to `x\" onerror=...` and run script in the browser of anyone opening the Plant Floor. Fixed by frappe.utils.escape_html on both values (off image in 2d387002d9, on image in 25dfcb17c8). A finding at the template sink (VPT line 11) is equivalent."
     },
     {
       "file": "erpnext/public/js/templates/visual_plant_floor_template.html",
       "line": 2,
+      "function": null,
       "category": "security",
       "summary": "The plant floor client template puts row.name (the user-chosen Workstation name) unescaped into data-workstation=\"...\" and title=\"...\" attributes. Frappe names cannot contain < or >, but a double quote breaks out of the attribute to add event handlers. Fixed by escaping row.name once into row_workstation_name and using it everywhere."
     },
     {
       "file": "erpnext/manufacturing/doctype/plant_floor/plant_floor.py",
       "line": 68,
+      "function": "get_stock_summary",
       "category": "security",
       "summary": "Whitelisted get_stock_summary returns Bin quantities (actual, projected, reserved) plus item name/group/image for any warehouse, item and item group via a query-builder query that applies no permissions. Any logged-in user can read stock levels of warehouses they have no access to. Fixed by has_permission checks on Warehouse, Item and Item Group."
     },
     {
       "file": "erpnext/manufacturing/doctype/plant_floor/stock_summary_template.html",
       "line": 4,
+      "function": null,
       "category": "security",
       "summary": "stock_summary_template.html interpolates row.image into an <img src> attribute and row.item_name into HTML without escaping (the client microtemplate does not auto-escape). A user who can edit an Item can store markup in item_name or a quote-breaking image value. Fixed by frappe.utils.escape_html on image, item_code and item_name."
     },
     {
       "file": "erpnext/manufacturing/doctype/workstation/workstation.py",
       "line": 462,
+      "function": "get_workstations",
       "category": "security",
       "summary": "Whitelisted get_workstations(**kwargs) runs a raw frappe.qb query on Workstation with no permission check, so any logged-in user can list name, description, status and status images of every workstation on any plant floor. Fixed by frappe.has_permission('Workstation', 'read', throw=True)."
     },
     {
       "file": "erpnext/manufacturing/doctype/workstation/workstation.py",
       "line": 535,
+      "function": "validate_job_card",
       "category": "security",
       "summary": "Whitelisted validate_job_card reads status and for_quantity of any Job Card with frappe.db.get_value and returns them (or echoes the status in an error) without a permission check. Fixed by frappe.has_permission('Job Card', 'read', doc=job_card, throw=True)."
     }

@@ -26,6 +26,7 @@ Write your findings to `/workspace/review.json` in this format:
     {
       "file": "hrms/payroll/report/provident_fund_deductions/provident_fund_deductions.py",
       "line": 42,
+      "function": "get_report",
       "category": "security",
       "summary": "One or two sentences: what is wrong, who can exploit it and how."
     }
@@ -35,5 +36,9 @@ Write your findings to `/workspace/review.json` in this format:
 
 - `file` is relative to `/workspace/hrms`.
 - `line` is the line where the problem is.
-- Report each problem once. Report only real vulnerabilities in the listed
-  files: flagging safe code lowers your score.
+- `function` is the name of the function the problem is in. Leave it out for
+  problems outside a function, such as in a template or a JSON file.
+- Report each problem once. When the same flaw is in several functions,
+  report each function separately.
+- Report only real vulnerabilities in the listed files: flagging safe code
+  lowers your score.

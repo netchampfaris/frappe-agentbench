@@ -10,6 +10,7 @@
         331,
         340
       ],
+      "function": "get_events",
       "note": "Whitelisted get_events accepts a `user` argument and uses it in the owner/DocShare visibility clause, so any user can list another user's private and shared events. Fixed first by a permission check (b4c2a6c6) and then by frappe.only_for('System Manager') when user != session user (93edb6a0b012581bad4e4c25b0c5f2cd2c721696).",
       "fix_commit": "b4c2a6c617ad9f10d7a7eb5063309479f15a9f05"
     },
@@ -21,6 +22,7 @@
         236,
         250
       ],
+      "function": "update_attending_status",
       "note": "Whitelisted update_attending_status loads any Event and sets the attending status of any participant (attendee is caller-supplied) with frappe.db.set_value; the final has_permission check is evaluated for the attendee, not the caller, and only after the write. Fixed by requiring attendee == caller or owner/write permission.",
       "fix_commit": "b4c2a6c617ad9f10d7a7eb5063309479f15a9f05"
     },
@@ -32,6 +34,7 @@
         40,
         50
       ],
+      "function": "restore",
       "note": "Whitelisted restore (and bulk_restore at 71-93, which calls it) fetches any Deleted Document with frappe.get_doc, recreates the original document and updates the Deleted Document with db_update, without any role or read check. Fixed by frappe.only_for('System Manager') in both endpoints plus create/read checks on the restored doctype.",
       "ghsa": "GHSA-cjjx-3v2x-37mf",
       "fix_commit": "f723c23f96161d63da8bcabb2b2670aa52b97f39"
@@ -44,6 +47,7 @@
         77,
         87
       ],
+      "function": "reset_tour",
       "note": "Whitelisted reset_tour rewrites onboarding_status for every User with frappe.db.set_value and has no role check, so any logged-in user can reset onboarding for the whole site. Fixed by frappe.only_for('System Manager').",
       "ghsa": "GHSA-9cxj-48g3-jx22",
       "fix_commit": "1b2cf9456313d2a7085d71ee324cb124d14eba2f"
@@ -56,6 +60,7 @@
         64,
         68
       ],
+      "function": "send_sms",
       "note": "Whitelisted send_sms sends arbitrary messages to arbitrary numbers through the company's SMS gateway (or send_sms hook) with no role or permission check. Fixed by check_sms_permission() (System Manager or roles listed in a new SMS Settings allowed_roles table), with internal callers moved to _send_sms.",
       "ghsa": "GHSA-wrh5-p77r-jpvq",
       "fix_commit": "3c311c4bf5b13fefa9404d90503ba68e85087a09"
@@ -68,6 +73,7 @@
         48,
         61
       ],
+      "function": "get_contact_number",
       "note": "Whitelisted get_contact_number returns any Contact's mobile/phone with raw SQL and no permission check; the EXISTS subquery is not even correlated with the contact, so any linked record satisfies it. Fixed by has_permission on the Contact and reference doc and a correlated Dynamic Link lookup.",
       "fix_commit": "e478d6d3ae320029aff600a6ed5113e215dc1a50"
     }
@@ -80,6 +86,7 @@
         275,
         284
       ],
+      "function": "get_permission_query_conditions",
       "note": "Builds SQL with f-strings, but every interpolated value (user, shared event names) is passed through frappe.db.escape."
     },
     {
@@ -89,6 +96,7 @@
         129,
         148
       ],
+      "function": "send_request",
       "note": "Makes an outbound HTTP request, but the URL comes from the SMS Settings single (System Manager configured), not from the caller."
     }
   ]

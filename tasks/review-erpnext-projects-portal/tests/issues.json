@@ -10,6 +10,7 @@
         67,
         79
       ],
+      "function": "get_task_html",
       "note": "Whitelisted get_task_html renders the task list (subjects, status, assignees) of any caller-supplied project; get_tasks uses frappe.get_all, so any logged-in user, including website users, can read tasks of any project. The page's get_context checks project membership but this endpoint does not. Fixed by validate_and_get_project_user (get_doc + check_permission). The endpoint was first removed in 7c6b13a838 (v16.22.0), restored by a revert, then fixed properly in 72b72a81fa.",
       "ghsa": "GHSA-q3vp-8w4j-x78w",
       "fix_commit": "72b72a81fa8085af3d56c3827ebef70e459fc85c"
@@ -22,6 +23,7 @@
         107,
         113
       ],
+      "function": "get_timesheet_html",
       "note": "Whitelisted get_timesheet_html returns timesheet rows (activity, times, status, modifier) of any project via frappe.get_all with no permission or membership check, and ignores the hide_timesheets setting. Fixed together with get_task_html.",
       "ghsa": "GHSA-q3vp-8w4j-x78w",
       "fix_commit": "72b72a81fa8085af3d56c3827ebef70e459fc85c"
@@ -34,6 +36,7 @@
         645,
         656
       ],
+      "function": "create_duplicate_project",
       "note": "create_duplicate_project trusts the caller-supplied prev_doc and copies every Task of prev_doc['name'] (frappe.get_all + get_doc + copy_doc) into a new project the caller owns, so a user with Project create can clone tasks of a project they cannot read. Fixed by frappe.has_permission('Project', 'read', source_name, throw=True).",
       "fix_commit": "8c8b282a2ef5f10a22acc5e009863b313f2450bf"
     },
@@ -45,6 +48,7 @@
         829,
         833
       ],
+      "function": "update_costing_and_billing",
       "note": "Whitelisted update_costing_and_billing loads any Project and calls project.db_update() after recomputing costs, with no permission check, so any logged-in user can write to any project row. Fixed by project.check_permission('write').",
       "fix_commit": "a20fc4f9317ecc7d262625aea680c9a0cda98cef"
     },
@@ -56,6 +60,7 @@
         304,
         315
       ],
+      "function": "get_projectwise_timesheet_data",
       "note": "Whitelisted get_projectwise_timesheet_data returns billing hours, billing amounts, descriptions and currency for any project/timesheet through a raw query-builder join that applies no permissions. Fixed by restricting to frappe.get_list('Timesheet') and frappe.get_list('Project') names.",
       "fix_commit": "d5df40986d72a55d414ddaf4d382883f9df31e41"
     },
@@ -67,6 +72,7 @@
         348,
         360
       ],
+      "function": "get_timesheet_detail_rate",
       "note": "Whitelisted get_timesheet_detail_rate returns the billing amount of any Timesheet Detail row by name via an unscoped qb query. Fixed by limiting to timesheets returned by frappe.get_list.",
       "fix_commit": "d5df40986d72a55d414ddaf4d382883f9df31e41"
     },
@@ -100,6 +106,7 @@
         376,
         390
       ],
+      "function": "get_timesheet",
       "note": "Whitelisted search get_timesheet builds a raw qb query over Timesheet Detail/Timesheet without applying Timesheet permissions, so any user can enumerate billable timesheet names (optionally per project). Fixed by restricting results to frappe.get_list('Timesheet') names.",
       "fix_commit": "d5df40986d72a55d414ddaf4d382883f9df31e41"
     },
@@ -111,6 +118,7 @@
         398,
         411
       ],
+      "function": "get_timesheet_data",
       "note": "Whitelisted get_timesheet_data returns billing hours and billing amounts of any Timesheet by name through frappe.get_all (no permission check). Fixed by switching to frappe.get_list (and scoping the project path).",
       "fix_commit": "d5df40986d72a55d414ddaf4d382883f9df31e41"
     },
@@ -122,6 +130,7 @@
         419,
         424
       ],
+      "function": "make_sales_invoice",
       "note": "Whitelisted make_sales_invoice loads any Timesheet with frappe.get_doc and returns a draft Sales Invoice containing its unbilled time logs (times, hours, billing amounts, descriptions) without checking Timesheet read. Fixed by timesheet.check_permission('read').",
       "fix_commit": "3e7d6fe8258057d38dd6204b3aec056a77d16607"
     },
@@ -133,6 +142,7 @@
         771,
         779
       ],
+      "function": "create_kanban_board_if_not_exists",
       "note": "Whitelisted create_kanban_board_if_not_exists loads any Project with frappe.get_doc and creates a Kanban Board named after it without checking Project read, so a user without access can confirm project names and create boards for them. Fixed by project.check_permission('read').",
       "fix_commit": "06fcba238b27a8ea4a8b31dd833da93ee4c07dbe"
     }
@@ -145,6 +155,7 @@
         787,
         797
       ],
+      "function": "set_project_status",
       "note": "POST-only, restricts status to two values and calls project.check_permission('write') before changing anything."
     },
     {
@@ -154,6 +165,7 @@
         528,
         535
       ],
+      "function": "get_events",
       "note": "Raw qb join, but get_event_conditions_qb throws without Timesheet read permission and adds the user-permission match conditions; start/end are bound parameters."
     }
   ]

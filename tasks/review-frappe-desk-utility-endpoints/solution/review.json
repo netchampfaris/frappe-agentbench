@@ -3,36 +3,42 @@
     {
       "file": "frappe/desk/doctype/event/event.py",
       "line": 331,
+      "function": "get_events",
       "category": "security",
       "summary": "Whitelisted get_events accepts a `user` argument and uses it in the owner/DocShare visibility clause, so any user can list another user's private and shared events. Fixed first by a permission check (b4c2a6c6) and then by frappe.only_for('System Manager') when user != session user (93edb6a0b012581bad4e4c25b0c5f2cd2c721696)."
     },
     {
       "file": "frappe/desk/doctype/event/event.py",
       "line": 236,
+      "function": "update_attending_status",
       "category": "security",
       "summary": "Whitelisted update_attending_status loads any Event and sets the attending status of any participant (attendee is caller-supplied) with frappe.db.set_value; the final has_permission check is evaluated for the attendee, not the caller, and only after the write. Fixed by requiring attendee == caller or owner/write permission."
     },
     {
       "file": "frappe/core/doctype/deleted_document/deleted_document.py",
       "line": 40,
+      "function": "restore",
       "category": "security",
       "summary": "Whitelisted restore (and bulk_restore at 71-93, which calls it) fetches any Deleted Document with frappe.get_doc, recreates the original document and updates the Deleted Document with db_update, without any role or read check. Fixed by frappe.only_for('System Manager') in both endpoints plus create/read checks on the restored doctype."
     },
     {
       "file": "frappe/desk/doctype/form_tour/form_tour.py",
       "line": 77,
+      "function": "reset_tour",
       "category": "security",
       "summary": "Whitelisted reset_tour rewrites onboarding_status for every User with frappe.db.set_value and has no role check, so any logged-in user can reset onboarding for the whole site. Fixed by frappe.only_for('System Manager')."
     },
     {
       "file": "frappe/core/doctype/sms_settings/sms_settings.py",
       "line": 64,
+      "function": "send_sms",
       "category": "security",
       "summary": "Whitelisted send_sms sends arbitrary messages to arbitrary numbers through the company's SMS gateway (or send_sms hook) with no role or permission check. Fixed by check_sms_permission() (System Manager or roles listed in a new SMS Settings allowed_roles table), with internal callers moved to _send_sms."
     },
     {
       "file": "frappe/core/doctype/sms_settings/sms_settings.py",
       "line": 48,
+      "function": "get_contact_number",
       "category": "security",
       "summary": "Whitelisted get_contact_number returns any Contact's mobile/phone with raw SQL and no permission check; the EXISTS subquery is not even correlated with the contact, so any linked record satisfies it. Fixed by has_permission on the Contact and reference doc and a correlated Dynamic Link lookup."
     }

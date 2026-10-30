@@ -3,36 +3,42 @@
     {
       "file": "hrms/payroll/report/provident_fund_deductions/provident_fund_deductions.py",
       "line": 61,
+      "function": "get_conditions",
       "category": "security",
       "summary": "get_conditions builds the WHERE clause with Python %-formatting of report filters (department, branch, company, month, year, mode_of_payment) inside quotes. The result is concatenated into frappe.db.sql in this report, and it is also imported by the Professional Tax and Payment Mode reports. A report user can inject SQL through a filter value. Fixed by returning query-builder criteria and casting month/year to int."
     },
     {
       "file": "hrms/payroll/report/salary_payments_based_on_payment_mode/salary_payments_based_on_payment_mode.py",
       "line": 73,
+      "function": "get_data",
       "category": "security",
       "summary": "get_data interpolates the unsafe conditions string from provident_fund_deductions.get_conditions into two raw frappe.db.sql queries with '%' (here and the branches query at 86-92). This is the report named in the advisory. Fixed by moving to frappe.qb with criteria objects."
     },
     {
       "file": "hrms/payroll/report/professional_tax_deductions/professional_tax_deductions.py",
       "line": 54,
+      "function": "get_data",
       "category": "security",
       "summary": "This report imports the injectable get_conditions and str.format()s its output into frappe.db.sql. Only the IN-list values are parameterised. Fixed in the same query-builder rewrite."
     },
     {
       "file": "hrms/payroll/report/salary_payments_via_ecs/salary_payments_via_ecs.py",
       "line": 70,
+      "function": "get_conditions",
       "category": "security",
       "summary": "The ECS report has its own copy of get_conditions, which %-formats department/branch/company/month/year into SQL fragments. They are concatenated into frappe.db.sql at 113-119, so any HR User can inject SQL. Fixed by switching to query-builder criteria."
     },
     {
       "file": "hrms/payroll/doctype/salary_structure/salary_structure.py",
       "line": 438,
+      "function": "get_salary_component",
       "category": "security",
       "summary": "get_salary_component is a whitelisted link-search query (doctype, txt, searchfield, ...) without @frappe.validate_and_sanitize_search_inputs. The caller-controlled searchfield is used as a column via sc[searchfield] and txt goes into LIKE, which allows SQL injection by any logged-in user. Fixed by adding @frappe.validate_and_sanitize_search_inputs."
     },
     {
       "file": "hrms/payroll/doctype/salary_structure/salary_structure.py",
       "line": 368,
+      "function": "make_salary_slip",
       "category": "security",
       "summary": "The whitelisted make_salary_slip accepts ignore_permissions from the HTTP caller and forwards it to get_mapped_doc (line 405). Any user can map a Salary Structure they cannot read into a Salary Slip, and with as_print=1 for an arbitrary employee can render salary details. Fixed by removing the parameter (9b4f3a34); a later commit added an Employee read check (94ed07a). No advisory names this; the fix shipped in v15.64.6 / v16.8.0 alongside other access-control fixes."
     }

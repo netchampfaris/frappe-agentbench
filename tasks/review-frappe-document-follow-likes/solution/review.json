@@ -3,54 +3,63 @@
     {
       "file": "frappe/desk/form/document_follow.py",
       "line": 26,
+      "function": "follow_document",
       "category": "security",
       "summary": "Whitelisted follow_document takes a `user` argument and never checks it against the session user, so any desk user can subscribe any other user (including to documents chosen by the attacker). Fixed by refusing user != session user (later the parameter was removed and the endpoint always uses frappe.session.user)."
     },
     {
       "file": "frappe/desk/form/document_follow.py",
       "line": 75,
+      "function": "unfollow_document",
       "category": "security",
       "summary": "Whitelisted unfollow_document takes a `user` argument and deletes that user's Document Follow record with force=True, so anyone can unsubscribe other users. Fixed by rejecting user != session user."
     },
     {
       "file": "frappe/desk/form/document_follow.py",
       "line": 61,
+      "function": "follow_document",
       "category": "security",
       "summary": "follow_document creates a Document Follow without checking that the follower can read the referenced document; the digest email then sends that document's field changes and comments to the follower. Fixed by frappe.has_permission(doctype, 'read', doc=doc_name, user=user)."
     },
     {
       "file": "frappe/desk/form/document_follow.py",
       "line": 150,
+      "function": "get_message_for_user",
       "category": "security",
       "summary": "get_message_for_user builds the digest for every followed document without re-checking read permission at send time, so a user whose access was revoked keeps receiving document data. Fixed by checking has_permission per follow and deleting the follow if access is gone."
     },
     {
       "file": "frappe/desk/form/document_follow.py",
       "line": 297,
+      "function": "get_field_changed",
       "category": "security",
       "summary": "get_field_changed (and likewise get_row_changed lines 255-280 and get_added_row lines 283-294) copy every changed field's old/new value from Version data into the email without filtering by the recipient's permlevel read access. Fixed by passing user and skipping fields not in meta.get_permitted_fieldnames(permission_type='read', user=user), with a child-table variant."
     },
     {
       "file": "frappe/desk/form/document_follow.py",
       "line": 133,
+      "function": "get_user_list",
       "category": "security",
       "summary": "get_user_list selects recipients by document_follow_notify/frequency only, so disabled users keep receiving document change emails. Fixed by adding .where(User.enabled == 1)."
     },
     {
       "file": "frappe/desk/like.py",
       "line": 30,
+      "function": "_toggle_like",
       "category": "security",
       "summary": "toggle_like/_toggle_like read and write `_liked_by` on any doctype/name and add a Like comment (and may auto-follow) without checking that the caller can read the document. Fixed by frappe.has_permission(doctype, 'read', doc=name, throw=True)."
     },
     {
       "file": "frappe/desk/doctype/note/note.py",
       "line": 56,
+      "function": "mark_as_seen",
       "category": "security",
       "summary": "Whitelisted mark_as_seen loads any Note by name with frappe.get_doc and saves it with ignore_permissions=True, letting any user modify (append seen_by to) private notes they cannot read. Fixed by note.check_permission('read')."
     },
     {
       "file": "frappe/desk/form/document_follow.py",
       "line": 248,
+      "function": "get_follow_users",
       "category": "security",
       "summary": "Whitelisted get_follow_users returns the followers of any document via frappe.get_all on Document Follow with no read check on the referenced document, leaking who follows records the caller cannot see. Fixed by frappe.has_permission(doctype, 'read', doc=doc_name, throw=True)."
     }

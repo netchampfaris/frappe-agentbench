@@ -125,18 +125,34 @@ def grade_review(expected: dict) -> dict[str, float]:
 
 
 def closest(finding: dict, targets: list[dict]) -> dict | None:
-	"""The target in the same file whose line range is nearest the finding."""
+	"""The target in the same file whose line range is nearest the finding.
+
+	A target that records its `function` also matches a finding that names the
+	same function, at any line. Agents often get line numbers wrong, for
+	example after `cat -n` on several files at once. A line match wins.
+	"""
 	try:
 		path, line = str(finding["file"]), int(finding["line"])
 	except (KeyError, TypeError, ValueError):
 		return None
-	distances = [
-		(max(t["lines"][0] - line, line - t["lines"][1], 0), t)
-		for t in targets
-		if path.endswith(t["file"])
-	]
-	distances = [(d, t) for d, t in distances if d <= LINE_SLACK]
+	function = bare_name(finding.get("function"))
+	distances = []
+	for t in targets:
+		if not path.endswith(t["file"]):
+			continue
+		d = max(t["lines"][0] - line, line - t["lines"][1], 0)
+		if d <= LINE_SLACK:
+			distances.append((d, t))
+		elif function and function == t.get("function"):
+			distances.append((LINE_SLACK + 1, t))
 	return min(distances, key=lambda dt: dt[0])[1] if distances else None
+
+
+def bare_name(function: object) -> str | None:
+	"""`crm.api.user.update_user_role()` -> `update_user_role`"""
+	if not isinstance(function, str) or not function.strip():
+		return None
+	return function.strip().removesuffix("()").rsplit(".", 1)[-1]
 
 
 def run(*cmd: str) -> subprocess.CompletedProcess[str]:

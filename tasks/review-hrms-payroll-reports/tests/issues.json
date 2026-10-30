@@ -10,6 +10,7 @@
         61,
         77
       ],
+      "function": "get_conditions",
       "note": "get_conditions builds the WHERE clause with Python %-formatting of report filters (department, branch, company, month, year, mode_of_payment) inside quotes. The result is concatenated into frappe.db.sql in this report, and it is also imported by the Professional Tax and Payment Mode reports. A report user can inject SQL through a filter value. Fixed by returning query-builder criteria and casting month/year to int.",
       "ghsa": "GHSA-2gv7-x4h2-3737",
       "fix_commit": "816a45182641912e145b67828c15b7947db7cefe"
@@ -22,6 +23,7 @@
         73,
         84
       ],
+      "function": "get_data",
       "note": "get_data interpolates the unsafe conditions string from provident_fund_deductions.get_conditions into two raw frappe.db.sql queries with '%' (here and the branches query at 86-92). This is the report named in the advisory. Fixed by moving to frappe.qb with criteria objects.",
       "ghsa": "GHSA-2gv7-x4h2-3737",
       "fix_commit": "816a45182641912e145b67828c15b7947db7cefe"
@@ -34,6 +36,7 @@
         54,
         64
       ],
+      "function": "get_data",
       "note": "This report imports the injectable get_conditions and str.format()s its output into frappe.db.sql. Only the IN-list values are parameterised. Fixed in the same query-builder rewrite.",
       "ghsa": "GHSA-2gv7-x4h2-3737",
       "fix_commit": "816a45182641912e145b67828c15b7947db7cefe"
@@ -46,6 +49,7 @@
         70,
         83
       ],
+      "function": "get_conditions",
       "note": "The ECS report has its own copy of get_conditions, which %-formats department/branch/company/month/year into SQL fragments. They are concatenated into frappe.db.sql at 113-119, so any HR User can inject SQL. Fixed by switching to query-builder criteria.",
       "ghsa": "GHSA-c32r-q985-64xr",
       "fix_commit": "a7d01fe5f01a17dc9db00f165379c03ebe16770b"
@@ -58,6 +62,7 @@
         438,
         449
       ],
+      "function": "get_salary_component",
       "note": "get_salary_component is a whitelisted link-search query (doctype, txt, searchfield, ...) without @frappe.validate_and_sanitize_search_inputs. The caller-controlled searchfield is used as a column via sc[searchfield] and txt goes into LIKE, which allows SQL injection by any logged-in user. Fixed by adding @frappe.validate_and_sanitize_search_inputs.",
       "ghsa": "GHSA-jfmr-9jv9-mrw4",
       "fix_commit": "50e9e14e21bb2bdd57b0abc168f0292703daae25"
@@ -70,6 +75,7 @@
         368,
         405
       ],
+      "function": "make_salary_slip",
       "note": "The whitelisted make_salary_slip accepts ignore_permissions from the HTTP caller and forwards it to get_mapped_doc (line 405). Any user can map a Salary Structure they cannot read into a Salary Slip, and with as_print=1 for an arbitrary employee can render salary details. Fixed by removing the parameter (9b4f3a34); a later commit added an Employee read check (94ed07a). No advisory names this; the fix shipped in v15.64.6 / v16.8.0 alongside other access-control fixes.",
       "fix_commit": "9b4f3a34499b8458fb97aada060347d9f64a9759"
     }
@@ -82,6 +88,7 @@
         350,
         357
       ],
+      "function": "get_existing_assignments",
       "note": "The f-string only adds '%s' placeholders based on len(employees). All values go through the parameter list."
     },
     {
@@ -91,6 +98,7 @@
         416,
         422
       ],
+      "function": "get_employees",
       "note": "Whitelisted, but reads Salary Structure Assignment through frappe.get_list, which applies permissions."
     },
     {
@@ -100,6 +108,7 @@
         175,
         179
       ],
+      "function": "get_years",
       "note": "Raw SQL with no user input. It only returns the distinct years of salary slips."
     }
   ]

@@ -10,6 +10,7 @@
         17,
         19
       ],
+      "function": "get_values",
       "note": "Whitelisted get_values(doctype, name, fields) calls frappe.db.get_value with caller-chosen doctype and fields and no permission check, so any logged-in user can read any field of any record (e.g. User, Salary Slip). Fixed by deleting the endpoint; the roster UI now uses frappe.client.get_value, which checks permissions.",
       "ghsa": "GHSA-4375-7rxj-9hfx",
       "fix_commit": "4ca429d2fd091f66b20581cd4a50ad45346f86a6"
@@ -22,6 +23,7 @@
         706,
         710
       ],
+      "function": "get_attachments",
       "note": "get_attachments(dt, dn) delegates to frappe.desk.form.load.get_attachments, an internal helper that uses frappe.get_all on File and never checks access to the parent record. Any user can list (and learn the URLs of) private files attached to any document. First fixed by switching to frappe.get_list on File; later hardened with frappe.has_permission(dt, 'read', dn) (GHSA-p8rg-rfhr-fcx2, commit 68dd57aa10e0dd6ebcbd2b7ec1fea5def8b12885).",
       "ghsa": "GHSA-6cg5-4q6m-vrgm",
       "fix_commit": "cda9063daac3a8f2b27485b49fd3ed21dc19eba9"
@@ -34,6 +36,7 @@
         62,
         67
       ],
+      "function": "get_all_employees",
       "note": "get_all_employees uses frappe.get_all (no permission or user-permission filtering) with limit 999999, so any user gets the whole employee directory across companies (names, user ids, departments, reports_to). Fixed by switching to frappe.get_list.",
       "ghsa": "GHSA-wfc6-cw72-cvhx",
       "fix_commit": "df957cb3f648b5db8a0adf0de35e1fc7a842b8fd"
@@ -46,6 +49,7 @@
         121,
         124
       ],
+      "function": "get_attendance_calendar_events",
       "note": "get_attendance_calendar_events trusts the caller-supplied employee and reads Attendance/Holiday with frappe.get_all, so any user can read another employee's attendance calendar. Fixed by dropping the employee parameter and resolving the employee from the session user (get_current_employee).",
       "ghsa": "GHSA-wfc6-cw72-cvhx",
       "fix_commit": "6791d952e8badee00963dcf0349b6b72f9be8899"
@@ -58,6 +62,7 @@
         300,
         313
       ],
+      "function": "get_shifts",
       "note": "get_shifts(employee) runs a raw query-builder query on Shift Assignment filtered only by the caller-supplied employee; query builder applies no permissions, so any user can read anyone's shift assignments. Fixed by resolving the employee from the session user.",
       "ghsa": "GHSA-wfc6-cw72-cvhx",
       "fix_commit": "8c0ce5bfea51d0771626cd24ddb04b9c6c8ebf67"
@@ -70,6 +75,7 @@
         368,
         381
       ],
+      "function": "get_leave_balance_map",
       "note": "get_leave_balance_map(employee) passes the caller-supplied employee to leave_application.get_leave_details, which (at this snapshot) has no permission check, exposing any employee's leave allocations and balances. Fixed by resolving the employee from the session user; get_leave_details itself later got an Employee read check (GHSA-9jpf-5vrm-hpcj, 7cf3240e08dc1a4ac79b71dd053b7be836c206ae).",
       "ghsa": "GHSA-wfc6-cw72-cvhx",
       "fix_commit": "8c0ce5bfea51d0771626cd24ddb04b9c6c8ebf67"
@@ -82,6 +88,7 @@
         528,
         565
       ],
+      "function": "get_expense_claim_summary",
       "note": "get_expense_claim_summary(employee) aggregates Expense Claim amounts with frappe.qb for any caller-supplied employee (filter at line 565), leaking other employees' pending/approved/rejected claim totals. Fixed by resolving the employee from the session user.",
       "ghsa": "GHSA-wfc6-cw72-cvhx",
       "fix_commit": "6791d952e8badee00963dcf0349b6b72f9be8899"
@@ -94,6 +101,7 @@
         617,
         635
       ],
+      "function": "get_employee_advance_balance",
       "note": "get_employee_advance_balance(employee) reads Employee Advance rows via frappe.qb for any caller-supplied employee (filter at line 635), exposing other employees' advances, purposes and balances. Fixed by resolving the employee from the session user.",
       "ghsa": "GHSA-wfc6-cw72-cvhx",
       "fix_commit": "6791d952e8badee00963dcf0349b6b72f9be8899"
@@ -106,6 +114,7 @@
         654,
         668
       ],
+      "function": "get_company_currencies",
       "note": "Whitelisted get_company_currencies builds a raw frappe.qb query over Company joined to Currency, which applies no permissions, so any logged-in user (Employee role is enough) lists every company on the site with its default currency, including companies outside their user permissions. Fixed by reading companies through frappe.get_list (with a test that a company-restricted user sees only their company).",
       "ghsa": "GHSA-v72r-rg45-x9rh",
       "fix_commit": "47411b1bd67ba422daf60d4061c9410c39b9b601"
@@ -118,6 +127,7 @@
         739,
         750
       ],
+      "function": "upload_base64_file",
       "note": "upload_base64_file(content, filename, dt, dn, fieldname) inserts a File attached to a caller-chosen doctype/name without checking write permission on that parent, so any user can attach files to records they cannot edit (and set attached_to_field). Fixed by adding frappe.has_permission(dt, 'write', dn, throw=True) before the insert.",
       "fix_commit": "9b4f3a34499b8458fb97aada060347d9f64a9759"
     },
@@ -129,6 +139,7 @@
         230,
         244
       ],
+      "function": "get_leaves",
       "note": "roster.get_events (whitelisted) calls get_leaves, which reads Leave Application joined to Employee with a raw frappe.qb query (no permission or user-permission filtering), so any logged-in user sees every employee's approved leaves (the sibling get_shifts at 254-286 has the same flaw for Shift Assignments). Fixed by building both queries with frappe.qb.get_query(..., ignore_permissions=False).",
       "fix_commit": "65e04cc5a251a0f3447ff74d28659387b840a810"
     }
@@ -141,6 +152,7 @@
         352,
         358
       ],
+      "function": "get_leave_applications",
       "note": "Takes a caller-supplied employee, but reads through frappe.get_list, which applies role and user permissions."
     },
     {
@@ -150,6 +162,7 @@
         100,
         108
       ],
+      "function": "mark_all_notifications_as_read",
       "note": "Uses frappe.db.set_value without permission checks, but the filter is pinned to frappe.session.user, so it only touches the caller's own notifications."
     },
     {
@@ -159,6 +172,7 @@
         41,
         55
       ],
+      "function": "get_current_employee_info",
       "note": "Uses frappe.db.get_value without permission checks, but looks up only the Employee linked to the session user."
     }
   ]
