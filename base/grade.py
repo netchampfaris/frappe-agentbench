@@ -30,6 +30,9 @@ LINE_SLACK = 3
 
 def main(tests_dir: Path) -> None:
 	LOGS.mkdir(parents=True, exist_ok=True)
+	# The agent, or a crash, may have stopped MariaDB or Redis. This starts
+	# whichever is not running.
+	run("/usr/local/bin/entrypoint.sh", "true")
 	if (tests_dir / "issues.json").exists():
 		reward = grade_review(json.loads((tests_dir / "issues.json").read_text()))
 	else:
