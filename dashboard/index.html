@@ -1,0 +1,274 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Frappe Agent Bench</title>
+<style>
+  :root {
+    --page: #f9f9f7; --surface: #fcfcfb; --ink: #0b0b0b; --ink-2: #52514e; --muted: #898781;
+    --grid: #e1e0d9; --border: rgba(11, 11, 11, 0.10); --empty: #f0efec;
+    --good: #006300; --bad: #b3261e;
+    color-scheme: light dark;
+  }
+  @media (prefers-color-scheme: dark) {
+    :root {
+      --page: #0d0d0d; --surface: #1a1a19; --ink: #f0efec; --ink-2: #c3c2b7; --muted: #898781;
+      --grid: #2c2c2a; --border: rgba(255, 255, 255, 0.10); --empty: #383835;
+      --good: #0ca30c; --bad: #f2867e;
+    }
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; background: var(--page); color: var(--ink);
+    font: 14px/1.5 Inter, ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+    font-feature-settings: "tnum";
+  }
+  main { max-width: 1120px; margin: 0 auto; padding: 40px 24px 64px; }
+  h1 { font-size: 24px; font-weight: 600; margin: 0; letter-spacing: -0.01em; }
+  h2 { font-size: 16px; font-weight: 600; margin: 0 0 4px; }
+  p { margin: 0; }
+  .sub { color: var(--ink-2); margin-top: 4px; }
+  .meta { color: var(--muted); font-size: 13px; margin-top: 8px; }
+  section { margin-top: 40px; }
+  section > .sub { margin-bottom: 16px; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
+
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .tile { padding: 16px 18px; }
+  .tile .model { color: var(--ink-2); font-size: 13px; }
+  .tile .score { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; margin: 2px 0; }
+  .tile .score small { font-size: 14px; color: var(--muted); font-weight: 400; }
+  .tile .facts { color: var(--muted); font-size: 13px; }
+
+  .scroll { overflow-x: auto; }
+  table { border-collapse: separate; border-spacing: 2px; width: 100%; }
+  th { font-weight: 500; color: var(--ink-2); font-size: 13px; text-align: left; padding: 6px 10px; white-space: nowrap; }
+  th.num, td.num { text-align: right; }
+  .heat td.cell {
+    border-radius: 4px; text-align: center; padding: 10px 8px; min-width: 96px; cursor: default;
+    font-weight: 500; outline-offset: 2px;
+  }
+  .heat td.cell span { display: block; font-size: 12px; font-weight: 400; opacity: 0.8; }
+  .heat td.rowhead { padding: 6px 10px; white-space: nowrap; }
+  .heat td.rowhead .note { color: var(--muted); font-size: 12px; }
+  .tag {
+    display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 4px; margin-left: 6px;
+    border: 1px solid var(--border); color: var(--ink-2); vertical-align: 1px;
+  }
+
+  .filters { display: flex; gap: 8px; margin-bottom: 12px; flex-wrap: wrap; }
+  select {
+    font: inherit; color: var(--ink); background: var(--surface); border: 1px solid var(--border);
+    border-radius: 8px; padding: 5px 10px;
+  }
+  .trials { border-spacing: 0; }
+  .trials th { border-bottom: 1px solid var(--grid); position: sticky; top: 0; background: var(--surface); }
+  .trials td { padding: 8px 10px; border-bottom: 1px solid var(--grid); vertical-align: top; }
+  .trials tr:last-child td { border-bottom: 0; }
+  .trials .detail { color: var(--ink-2); font-size: 13px; max-width: 420px; }
+  .ok { color: var(--good); } .fail { color: var(--bad); }
+  code { font: 12px ui-monospace, SFMono-Regular, Menlo, monospace; }
+
+  .legend { display: flex; align-items: center; gap: 8px; color: var(--muted); font-size: 12px; margin-top: 10px; }
+  .legend .ramp { display: flex; gap: 2px; }
+  .legend .ramp i { width: 18px; height: 10px; border-radius: 2px; display: block; }
+
+  #tip {
+    position: fixed; pointer-events: none; z-index: 10; display: none; max-width: 300px;
+    background: var(--surface); color: var(--ink); border: 1px solid var(--border); border-radius: 8px;
+    padding: 8px 10px; font-size: 13px; box-shadow: 0 4px 16px rgba(0, 0, 0, 0.12);
+  }
+  #tip b { font-weight: 600; } #tip .m { color: var(--muted); }
+  footer { margin-top: 48px; color: var(--muted); font-size: 13px; }
+  footer a { color: var(--ink-2); }
+</style>
+</head>
+<body>
+<main>
+  <header>
+    <h1>Frappe Agent Bench</h1>
+    <p class="sub">How well coding agents write and review Frappe Framework v16 code.</p>
+    <p class="meta" id="meta"></p>
+  </header>
+
+  <section>
+    <h2>Overall score</h2>
+    <p class="sub">Mean score over every attempt. A task scores 0 to 1; "solved" means a perfect score.</p>
+    <div class="tiles" id="tiles"></div>
+  </section>
+
+  <section>
+    <h2>Score by task</h2>
+    <p class="sub">Mean score per task, and attempts solved. Hover a cell for time and tokens.</p>
+    <div class="card scroll" style="padding: 8px"><table class="heat" id="by-task"></table></div>
+    <div class="legend"><span>0</span><div class="ramp" id="ramp"></div><span>1</span></div>
+  </section>
+
+  <section id="review-section">
+    <h2>Review tasks: issues found</h2>
+    <p class="sub">Share of attempts that reported each planted issue. Hover an issue for what is wrong.</p>
+    <div id="review"></div>
+  </section>
+
+  <section>
+    <h2>All attempts</h2>
+    <div class="filters">
+      <select id="f-model" aria-label="Model"><option value="">All models</option></select>
+      <select id="f-task" aria-label="Task"><option value="">All tasks</option></select>
+    </div>
+    <div class="card scroll"><table class="trials" id="trials"></table></div>
+  </section>
+
+  <footer>
+    Build tasks: the score is the share of hidden tests that pass.
+    Review tasks: issues found ÷ (planted issues + decoys flagged), so flagging correct code costs as much as missing a problem.
+    <br><a href="https://github.com/netchampfaris/frappe-agentbench">Source and tasks on GitHub</a>
+  </footer>
+</main>
+<div id="tip" role="tooltip"></div>
+
+<script>
+// Blue sequential ramp, steps 100 to 700: light means a low score.
+const RAMP = ["#cde2fb", "#b7d3f6", "#9ec5f4", "#86b6ef", "#6da7ec", "#5598e7", "#3987e5",
+              "#2a78d6", "#256abf", "#1c5cab", "#184f95", "#104281", "#0d366b"];
+const fill = (s) => RAMP[Math.round(s * (RAMP.length - 1))];
+const inkOn = (s) => (Math.round(s * (RAMP.length - 1)) >= 7 ? "#ffffff" : "#0b0b0b");
+const mean = (xs) => xs.reduce((a, b) => a + b, 0) / xs.length;
+const fmt = (n) => n.toFixed(2);
+const mins = (s) => `${(s / 60).toFixed(1)} min`;
+const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+const $ = (id) => document.getElementById(id);
+
+const tip = $("tip");
+function bindTip(el, html) {
+  const show = (x, y) => {
+    tip.innerHTML = html; tip.style.display = "block";
+    const r = tip.getBoundingClientRect();
+    tip.style.left = `${Math.min(x + 14, innerWidth - r.width - 8)}px`;
+    tip.style.top = `${Math.min(y + 14, innerHeight - r.height - 8)}px`;
+  };
+  el.tabIndex = 0;
+  el.addEventListener("pointermove", (e) => show(e.clientX, e.clientY));
+  el.addEventListener("focus", () => { const r = el.getBoundingClientRect(); show(r.right, r.top); });
+  el.addEventListener("pointerleave", () => (tip.style.display = "none"));
+  el.addEventListener("blur", () => (tip.style.display = "none"));
+}
+
+function heatCell(score, label, sub, tipHtml) {
+  const td = document.createElement("td");
+  td.className = "cell";
+  td.style.background = fill(score);
+  td.style.color = inkOn(score);
+  td.innerHTML = `${label}${sub ? `<span>${sub}</span>` : ""}`;
+  td.setAttribute("aria-label", tipHtml.replace(/<[^>]+>/g, " "));
+  bindTip(td, tipHtml);
+  return td;
+}
+
+function render({ generated_at, tasks, trials }) {
+  const models = [...new Set(trials.map((t) => t.model))]
+    .map((m) => ({ m, s: mean(trials.filter((t) => t.model === m).map((t) => t.reward)) }))
+    .sort((a, b) => b.s - a.s).map((x) => x.m);
+  const taskNames = tasks.map((t) => t.name).filter((n) => trials.some((t) => t.task === n));
+  const of = (model, task) => trials.filter((t) => t.model === model && (!task || t.task === task));
+
+  $("meta").textContent = `${trials.length} attempts · ${models.length} models · ${taskNames.length} tasks · ` +
+    `updated ${new Date(generated_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`;
+  $("ramp").innerHTML = RAMP.map((c) => `<i style="background:${c}"></i>`).join("");
+
+  // Tiles
+  $("tiles").innerHTML = models.map((m) => {
+    const ts = of(m);
+    const agent = ts[0].agent;
+    return `<div class="card tile"><div class="model">${esc(m)} <span class="tag">${esc(agent)}</span></div>
+      <div class="score">${fmt(mean(ts.map((t) => t.reward)))}</div>
+      <div class="facts">${ts.filter((t) => t.solved).length}/${ts.length} solved · ${mins(mean(ts.map((t) => t.seconds)))} per task</div></div>`;
+  }).join("");
+
+  // Model x task heat table
+  const byTask = $("by-task");
+  byTask.innerHTML = `<tr><th></th>${taskNames.map((n) => {
+    const t = tasks.find((x) => x.name === n);
+    return `<th title="${esc(t.description)}">${esc(n)}<span class="tag">${t.kind}</span></th>`;
+  }).join("")}</tr>`;
+  for (const m of models) {
+    const tr = byTask.insertRow();
+    tr.innerHTML = `<td class="rowhead">${esc(m)}</td>`;
+    for (const n of taskNames) {
+      const ts = of(m, n);
+      if (!ts.length) { tr.insertCell(); continue; }
+      const s = mean(ts.map((t) => t.reward));
+      const solved = ts.filter((t) => t.solved).length;
+      tr.appendChild(heatCell(s, fmt(s), `${solved}/${ts.length} solved`,
+        `<b>${esc(m)}</b> · ${esc(n)}<br>Score ${fmt(s)}, ${solved}/${ts.length} solved<br>` +
+        `<span class="m">${mins(mean(ts.map((t) => t.seconds)))} · ${Math.round(mean(ts.map((t) => t.output_tokens))).toLocaleString()} output tokens</span>`));
+    }
+  }
+
+  // Review issue tables
+  const reviewTasks = tasks.filter((t) => t.kind === "review" && taskNames.includes(t.name));
+  $("review-section").hidden = !reviewTasks.length;
+  $("review").innerHTML = "";
+  for (const task of reviewTasks) {
+    const card = document.createElement("div");
+    card.className = "card scroll";
+    card.style.cssText = "padding: 8px; margin-bottom: 12px";
+    const table = document.createElement("table");
+    table.className = "heat";
+    table.innerHTML = `<tr><th>${esc(task.name)}</th>${models.map((m) => `<th>${esc(m)}</th>`).join("")}</tr>`;
+    const rate = (issue) => mean(models.map((m) => {
+      const ts = of(m, task.name); return ts.length ? ts.filter((t) => t.issues[issue.id]).length / ts.length : 0;
+    }));
+    for (const issue of [...task.issues].sort((a, b) => rate(b) - rate(a))) {
+      const tr = table.insertRow();
+      const head = tr.insertCell();
+      head.className = "rowhead";
+      head.innerHTML = `${esc(issue.id)}<span class="tag">${esc(issue.category)}</span>`;
+      bindTip(head, `<b>${esc(issue.id)}</b><br>${esc(issue.note)}`);
+      for (const m of models) {
+        const ts = of(m, task.name);
+        if (!ts.length) { tr.insertCell(); continue; }
+        const found = ts.filter((t) => t.issues[issue.id]).length;
+        tr.appendChild(heatCell(found / ts.length, `${found}/${ts.length}`, "",
+          `<b>${esc(m)}</b> found <b>${esc(issue.id)}</b> in ${found} of ${ts.length} attempts`));
+      }
+    }
+    const tr = table.insertRow();
+    tr.innerHTML = `<td class="rowhead">decoys flagged <span class="note">(correct code reported as wrong)</span></td>` +
+      models.map((m) => `<td class="num" style="text-align:center">${of(m, task.name).reduce((a, t) => a + t.decoy_hits, 0)}</td>`).join("");
+    card.appendChild(table);
+    $("review").appendChild(card);
+  }
+
+  // Trials table with filters
+  const fm = $("f-model"), ft = $("f-task");
+  fm.innerHTML = `<option value="">All models</option>` + models.map((m) => `<option>${esc(m)}</option>`).join("");
+  ft.innerHTML = `<option value="">All tasks</option>` + taskNames.map((n) => `<option>${esc(n)}</option>`).join("");
+  const drawTrials = () => {
+    const rows = trials
+      .filter((t) => (!fm.value || t.model === fm.value) && (!ft.value || t.task === ft.value))
+      .sort((a, b) => models.indexOf(a.model) - models.indexOf(b.model) || a.task.localeCompare(b.task) || a.started_at.localeCompare(b.started_at));
+    $("trials").innerHTML = `<tr><th>Model</th><th>Task</th><th class="num">Score</th><th class="num">Time</th>
+      <th class="num">Output tokens</th><th>Details</th></tr>` + rows.map((t) => {
+      const missed = Object.entries(t.issues).filter(([, f]) => !f).map(([id]) => id);
+      const detail = t.error ? `<span class="fail">Error: ${esc(t.error)}</span>`
+        : t.failed_tests.length ? `Failed: ${t.failed_tests.map((n) => `<code>${esc(n)}</code>`).join(", ")}`
+        : missed.length || t.decoy_hits ? [missed.length && `Missed: ${missed.map((n) => `<code>${esc(n)}</code>`).join(", ")}`,
+                                           t.decoy_hits && `${t.decoy_hits} decoy flagged`].filter(Boolean).join(" · ")
+        : `<span class="ok">All passed</span>`;
+      return `<tr><td>${esc(t.model)}</td><td>${esc(t.task)}</td><td class="num">${fmt(t.reward)}</td>
+        <td class="num">${mins(t.seconds)}</td><td class="num">${t.output_tokens.toLocaleString()}</td>
+        <td class="detail">${detail}</td></tr>`;
+    }).join("");
+  };
+  fm.onchange = ft.onchange = drawTrials;
+  drawTrials();
+}
+
+fetch("results.json").then((r) => r.json()).then(render).catch((e) => {
+  document.querySelector("main").insertAdjacentHTML("beforeend", `<p class="fail">Could not load results.json: ${esc(e)}</p>`);
+});
+</script>
+</body>
+</html>

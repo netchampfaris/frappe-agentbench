@@ -1,0 +1,18 @@
+schema_version = "1.4"
+
+[task]
+name = "frappe-agentbench/api-permissions"
+version = "1.0.0"
+description = "Add whitelisted API methods with role, ownership and HTTP method checks."
+keywords = ["build", "api", "permissions"]
+
+[verifier]
+timeout_sec = 300.0
+environment_mode = "shared"
+
+[agent]
+timeout_sec = 1200.0
+
+[environment]
+network_mode = "public"
+build_timeout_sec = 600.0

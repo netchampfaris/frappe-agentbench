@@ -1,0 +1,32 @@
+{
+ "actions": [],
+ "autoname": "hash",
+ "creation": "2026-10-29 00:00:00.000000",
+ "doctype": "DocType",
+ "engine": "InnoDB",
+ "field_order": ["employee", "purpose", "from_date", "to_date", "per_diem_rate", "total", "status", "approver"],
+ "fields": [
+  {"fieldname": "employee", "fieldtype": "Link", "options": "User", "in_list_view": 1, "label": "Employee", "reqd": 1},
+  {"fieldname": "purpose", "fieldtype": "Data", "in_list_view": 1, "label": "Purpose", "reqd": 1},
+  {"fieldname": "from_date", "fieldtype": "Date", "label": "From Date", "reqd": 1},
+  {"fieldname": "to_date", "fieldtype": "Date", "label": "To Date", "reqd": 1},
+  {"fieldname": "per_diem_rate", "fieldtype": "Currency", "label": "Per Diem Rate", "reqd": 1},
+  {"fieldname": "total", "fieldtype": "Currency", "label": "Total", "read_only": 1},
+  {"fieldname": "status", "fieldtype": "Select", "options": "Draft\nApproved\nRejected\nWithdrawn", "default": "Draft", "in_list_view": 1, "label": "Status"},
+  {"fieldname": "approver", "fieldtype": "Link", "options": "User", "label": "Approver", "read_only": 1}
+ ],
+ "links": [],
+ "modified": "2026-10-29 00:00:00.000000",
+ "modified_by": "Administrator",
+ "module": "Acme",
+ "name": "Travel Claim",
+ "owner": "Administrator",
+ "permissions": [
+  {"create": 1, "delete": 1, "read": 1, "report": 1, "role": "System Manager", "share": 1, "write": 1},
+  {"read": 1, "report": 1, "role": "Travel Approver", "write": 1},
+  {"create": 1, "read": 1, "role": "Employee", "write": 1, "if_owner": 1}
+ ],
+ "sort_field": "creation",
+ "sort_order": "DESC",
+ "states": []
+}

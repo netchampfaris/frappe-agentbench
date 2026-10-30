@@ -1,0 +1,70 @@
+{
+  "findings": [
+    {
+      "file": "acme/doctype/travel_claim/travel_claim.py",
+      "line": 13,
+      "category": "bug",
+      "summary": "Compares raw field values. A date loaded from the database and a string set through the API raise TypeError. Use getdate()."
+    },
+    {
+      "file": "acme/doctype/travel_claim/travel_claim.py",
+      "line": 18,
+      "category": "bug",
+      "summary": "The docstring says both days count, but date_diff excludes one. A one-day trip pays nothing."
+    },
+    {
+      "file": "acme/doctype/travel_claim/travel_claim.py",
+      "line": 23,
+      "category": "security",
+      "summary": "User-entered purpose is put into HTML without escaping. Stored XSS for the approver."
+    },
+    {
+      "file": "acme/doctype/travel_claim/travel_claim.py",
+      "line": 25,
+      "category": "pattern",
+      "summary": "frappe.db.commit() inside a document hook breaks request transaction handling."
+    },
+    {
+      "file": "acme/travel.py",
+      "line": 17,
+      "category": "security",
+      "summary": "Builds a document of any doctype from client JSON and inserts it with ignore_permissions."
+    },
+    {
+      "file": "acme/travel.py",
+      "line": 35,
+      "category": "security",
+      "summary": "Any logged-in user, including the claimant, can approve any claim."
+    },
+    {
+      "file": "acme/travel.py",
+      "line": 46,
+      "category": "security",
+      "summary": "status is interpolated into SQL."
+    },
+    {
+      "file": "acme/travel.py",
+      "line": 61,
+      "category": "security",
+      "summary": "Guests can read any employee's claims and amounts."
+    },
+    {
+      "file": "acme/travel.py",
+      "line": 74,
+      "category": "pattern",
+      "summary": "One count query per claim. Use a single grouped query."
+    },
+    {
+      "file": "acme/travel.py",
+      "line": 26,
+      "category": "bug",
+      "summary": "Never checks the current status, so approved or rejected claims can be withdrawn. db_set also skips validation and hooks."
+    },
+    {
+      "file": "acme/doctype/travel_claim/travel_claim.json",
+      "line": 9,
+      "category": "security",
+      "summary": "Employees have write on their own claims and status has no permlevel, so a claimant can set status to Approved from the form."
+    }
+  ]
+}

@@ -1,0 +1,6 @@
+app_name = "acme"
+app_title = "Acme"
+app_publisher = "Acme"
+app_description = "Internal tools for Acme"
+app_email = "dev@acme.localhost"
+app_license = "mit"

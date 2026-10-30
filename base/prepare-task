@@ -1,0 +1,9 @@
+#!/bin/bash
+# Used by task Dockerfiles after copying starting code into the app:
+# sync it into the site, commit it as the starting point, and stop MariaDB cleanly.
+set -e
+cd "$BENCH"
+/usr/local/bin/entrypoint.sh bench --site "$SITE" migrate
+git -C apps/acme add -A
+git -C apps/acme -c user.name=bench -c user.email=bench@localhost commit -qm "Task starting point"
+mariadb-admin -uroot -proot shutdown

@@ -1,0 +1,132 @@
+{
+  "issues": [
+    {
+      "id": "date-comparison-type-error",
+      "category": "bug",
+      "file": "acme/doctype/travel_claim/travel_claim.py",
+      "lines": [
+        13,
+        13
+      ],
+      "note": "Compares raw field values. A date loaded from the database and a string set through the API raise TypeError. Use getdate()."
+    },
+    {
+      "id": "per-diem-off-by-one",
+      "category": "bug",
+      "file": "acme/doctype/travel_claim/travel_claim.py",
+      "lines": [
+        18,
+        19
+      ],
+      "note": "The docstring says both days count, but date_diff excludes one. A one-day trip pays nothing."
+    },
+    {
+      "id": "msgprint-xss",
+      "category": "security",
+      "file": "acme/doctype/travel_claim/travel_claim.py",
+      "lines": [
+        23,
+        23
+      ],
+      "note": "User-entered purpose is put into HTML without escaping. Stored XSS for the approver."
+    },
+    {
+      "id": "commit-in-controller",
+      "category": "pattern",
+      "file": "acme/doctype/travel_claim/travel_claim.py",
+      "lines": [
+        25,
+        25
+      ],
+      "note": "frappe.db.commit() inside a document hook breaks request transaction handling."
+    },
+    {
+      "id": "create-claim-mass-assignment",
+      "category": "security",
+      "file": "acme/travel.py",
+      "lines": [
+        17,
+        20
+      ],
+      "note": "Builds a document of any doctype from client JSON and inserts it with ignore_permissions."
+    },
+    {
+      "id": "approve-without-permission",
+      "category": "security",
+      "file": "acme/travel.py",
+      "lines": [
+        35,
+        39
+      ],
+      "note": "Any logged-in user, including the claimant, can approve any claim."
+    },
+    {
+      "id": "sql-injection",
+      "category": "security",
+      "file": "acme/travel.py",
+      "lines": [
+        46,
+        47
+      ],
+      "note": "status is interpolated into SQL."
+    },
+    {
+      "id": "guest-data-exposure",
+      "category": "security",
+      "file": "acme/travel.py",
+      "lines": [
+        61,
+        63
+      ],
+      "note": "Guests can read any employee's claims and amounts."
+    },
+    {
+      "id": "count-query-per-row",
+      "category": "pattern",
+      "file": "acme/travel.py",
+      "lines": [
+        74,
+        77
+      ],
+      "note": "One count query per claim. Use a single grouped query."
+    },
+    {
+      "id": "withdraw-any-status",
+      "category": "bug",
+      "file": "acme/travel.py",
+      "lines": [
+        26,
+        31
+      ],
+      "note": "Never checks the current status, so approved or rejected claims can be withdrawn. db_set also skips validation and hooks."
+    },
+    {
+      "id": "employee-can-approve-own-claim",
+      "category": "security",
+      "file": "acme/doctype/travel_claim/travel_claim.json",
+      "lines": [
+        9,
+        27
+      ],
+      "note": "Employees have write on their own claims and status has no permlevel, so a claimant can set status to Approved from the form."
+    }
+  ],
+  "decoys": [
+    {
+      "id": "get-all-filtered-to-session-user",
+      "file": "acme/travel.py",
+      "lines": [
+        9,
+        12
+      ]
+    },
+    {
+      "id": "parameterised-sql",
+      "file": "acme/travel.py",
+      "lines": [
+        55,
+        58
+      ]
+    }
+  ]
+}

@@ -1,0 +1,9 @@
+[project]
+name = "frappe-agentbench"
+version = "0.1.0"
+description = "Benchmark for coding agents writing and reviewing Frappe Framework code"
+requires-python = ">=3.12"
+dependencies = ["harbor"]
+
+[tool.uv]
+package = false
