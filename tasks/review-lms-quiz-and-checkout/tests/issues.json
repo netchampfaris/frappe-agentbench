@@ -1,0 +1,89 @@
+{
+  "repo": "frappe/lms",
+  "snapshot": "8fa5c899ff355a74771142d9478dd40fa7f2ffe9",
+  "issues": [
+    {
+      "id": "quiz-score-trusts-client-correctness",
+      "category": "security",
+      "file": "lms/lms/doctype/lms_quiz/lms_quiz.py",
+      "lines": [
+        160,
+        175
+      ],
+      "note": "process_results() decides whether each answer is correct from the client-sent result['is_correct'] list and awards full marks accordingly; a student can mark every answer correct in the request and pass. Fixed by recomputing correctness on the server from LMS Question (verify_answer) and ignoring client is_correct (also renamed quiz_summary to submit_quiz). Landed in v2.47.0 although the advisory says 2.46.0.",
+      "ghsa": "GHSA-9573-68xq-hwrx",
+      "fix_commit": "cb01e17aa7aca0db13e820d7c1e6b32443a46dc8"
+    },
+    {
+      "id": "quiz-submit-without-quiz-access",
+      "category": "security",
+      "file": "lms/lms/doctype/lms_quiz/lms_quiz.py",
+      "lines": [
+        103,
+        108
+      ],
+      "note": "Whitelisted quiz_summary() accepts any quiz name from any logged-in user with no check that the caller is enrolled in the quiz's course (or that the quiz is reachable), so students can submit quizzes of paid/unenrolled courses, record progress via save_progress_after_quiz, and use the returned score as an answer oracle. Fixed by gating submit_quiz on can_access_quiz().",
+      "ghsa": "GHSA-xvj8-v87h-68vw",
+      "fix_commit": "92050caa8e9cf5770a6e40589f2371631225415d"
+    },
+    {
+      "id": "quiz-submission-direct-rest-write",
+      "category": "security",
+      "file": "lms/lms/doctype/lms_quiz_submission/lms_quiz_submission.json",
+      "lines": [
+        138,
+        149
+      ],
+      "note": "LMS Student is granted create and write (if_owner) on LMS Quiz Submission, so a student can POST/PUT the doc through /api/resource directly with arbitrary result rows; LMSQuizSubmission.validate_marks() just sums the client-supplied row.marks, recording a perfect score without any answer being checked. Fixed by removing create/write for LMS Student (and making member read-only).",
+      "ghsa": "GHSA-4566-2phx-68gh",
+      "fix_commit": "876504f3900512f528b6e4a7bd3a15673eedd386"
+    },
+    {
+      "id": "quiz-submission-member-forgery-attempts",
+      "category": "security",
+      "file": "lms/lms/doctype/lms_quiz_submission/lms_quiz_submission.py",
+      "lines": [
+        20,
+        28
+      ],
+      "note": "The member field is client-writable and validate_if_max_attempts_exceeded() counts attempts for frappe.session.user rather than self.member, so a student can create submissions attributed to another user (forged results) and exhaust that user's max_attempts, blocking their legitimate attempt. Fixed by counting by self.member and making member read_only (plus removing direct create).",
+      "ghsa": "GHSA-4566-2phx-68gh",
+      "fix_commit": "876504f3900512f528b6e4a7bd3a15673eedd386"
+    },
+    {
+      "id": "checkout-client-controlled-price",
+      "category": "security",
+      "file": "lms/lms/payments.py",
+      "lines": [
+        25,
+        36
+      ],
+      "note": "Whitelisted get_payment_link() takes amount, discount_amount, gst_amount, currency and title from the client and uses them to create the LMS Payment and the gateway order, so a user can pay any amount (e.g. 1) for a paid course, batch or certificate. Fixed by dropping these params and computing the price server-side via get_order_summary(doctype, docname, coupon, country).",
+      "ghsa": "GHSA-g5jj-q8m7-359c",
+      "fix_commit": "1d04f4fd917b62f5dd4442a541280fc40a4178b4"
+    },
+    {
+      "id": "enrollment-paid-course-via-unrelated-batch",
+      "category": "security",
+      "file": "lms/lms/doctype/lms_enrollment/lms_enrollment.py",
+      "lines": [
+        52,
+        56
+      ],
+      "note": "validate_course_enrollment_eligibility() returns early (skipping the published and paid-course payment checks) whenever enrollment_from_batch names any batch the member is enrolled in, without verifying that the batch actually contains this course; enrolling in a free batch unlocks any paid course. Fixed by requiring a matching Batch Course row.",
+      "ghsa": "GHSA-c4xh-2rcm-6mgc",
+      "fix_commit": "c3e3337de425d338b347e9f8c782e8b9df1deed4"
+    }
+  ],
+  "decoys": [
+    {
+      "id": "last-submission-scoped-to-owner",
+      "file": "lms/lms/doctype/lms_quiz/lms_quiz.py",
+      "lines": [
+        78,
+        93
+      ],
+      "note": "frappe.get_all with ignore-perms semantics, but filtered by owner = frappe.session.user, so it only returns the caller's own submission."
+    }
+  ]
+}

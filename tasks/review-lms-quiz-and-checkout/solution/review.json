@@ -1,0 +1,40 @@
+{
+  "findings": [
+    {
+      "file": "lms/lms/doctype/lms_quiz/lms_quiz.py",
+      "line": 160,
+      "category": "security",
+      "summary": "process_results() decides whether each answer is correct from the client-sent result['is_correct'] list and awards full marks accordingly; a student can mark every answer correct in the request and pass. Fixed by recomputing correctness on the server from LMS Question (verify_answer) and ignoring client is_correct (also renamed quiz_summary to submit_quiz). Landed in v2.47.0 although the advisory says 2.46.0."
+    },
+    {
+      "file": "lms/lms/doctype/lms_quiz/lms_quiz.py",
+      "line": 103,
+      "category": "security",
+      "summary": "Whitelisted quiz_summary() accepts any quiz name from any logged-in user with no check that the caller is enrolled in the quiz's course (or that the quiz is reachable), so students can submit quizzes of paid/unenrolled courses, record progress via save_progress_after_quiz, and use the returned score as an answer oracle. Fixed by gating submit_quiz on can_access_quiz()."
+    },
+    {
+      "file": "lms/lms/doctype/lms_quiz_submission/lms_quiz_submission.json",
+      "line": 138,
+      "category": "security",
+      "summary": "LMS Student is granted create and write (if_owner) on LMS Quiz Submission, so a student can POST/PUT the doc through /api/resource directly with arbitrary result rows; LMSQuizSubmission.validate_marks() just sums the client-supplied row.marks, recording a perfect score without any answer being checked. Fixed by removing create/write for LMS Student (and making member read-only)."
+    },
+    {
+      "file": "lms/lms/doctype/lms_quiz_submission/lms_quiz_submission.py",
+      "line": 20,
+      "category": "security",
+      "summary": "The member field is client-writable and validate_if_max_attempts_exceeded() counts attempts for frappe.session.user rather than self.member, so a student can create submissions attributed to another user (forged results) and exhaust that user's max_attempts, blocking their legitimate attempt. Fixed by counting by self.member and making member read_only (plus removing direct create)."
+    },
+    {
+      "file": "lms/lms/payments.py",
+      "line": 25,
+      "category": "security",
+      "summary": "Whitelisted get_payment_link() takes amount, discount_amount, gst_amount, currency and title from the client and uses them to create the LMS Payment and the gateway order, so a user can pay any amount (e.g. 1) for a paid course, batch or certificate. Fixed by dropping these params and computing the price server-side via get_order_summary(doctype, docname, coupon, country)."
+    },
+    {
+      "file": "lms/lms/doctype/lms_enrollment/lms_enrollment.py",
+      "line": 52,
+      "category": "security",
+      "summary": "validate_course_enrollment_eligibility() returns early (skipping the published and paid-course payment checks) whenever enrollment_from_batch names any batch the member is enrolled in, without verifying that the batch actually contains this course; enrolling in a free batch unlocks any paid course. Fixed by requiring a matching Batch Course row."
+    }
+  ]
+}

@@ -1,0 +1,121 @@
+{
+  "repo": "frappe/frappe",
+  "snapshot": "374fa3cf6f8a07bec67e20371d8ca3ba08e422c6",
+  "issues": [
+    {
+      "id": "reuse-private-file-url",
+      "category": "security",
+      "file": "frappe/core/doctype/file/file.py",
+      "lines": [
+        104,
+        116
+      ],
+      "note": "before_insert/validate accept a caller-supplied file_url that points at an existing private file and never check the caller can read that file. The new File is owned by the caller, so has_permission grants them access and /private/files download succeeds. Fixed by validate_private_file_access() in before_insert.",
+      "ghsa": "GHSA-gvg7-4p32-j648",
+      "fix_commit": "b33929cea82401c8e8447ec92d8765de99e6a26b"
+    },
+    {
+      "id": "get-content-path-traversal",
+      "category": "security",
+      "file": "frappe/core/doctype/file/file.py",
+      "lines": [
+        625,
+        640
+      ],
+      "note": "get_content reads get_full_path() after only validate_file_url (prefix check). get_full_path only checks is_safe_path, which allows anything inside the site directory, and before_insert calls get_content before validate runs, so a File created with file_url '/files/../../site_config.json' and no content copies site_config.json into a new readable file. Fixed by calling self.validate_file_path() in get_content.",
+      "fix_commit": "f4b4a77737cbdf8b02ac07ea9f2b837a29c7f746"
+    },
+    {
+      "id": "attach-without-write-permission",
+      "category": "security",
+      "file": "frappe/core/doctype/file/file.py",
+      "lines": [
+        181,
+        192
+      ],
+      "note": "validate_attachment_references validates only the shape of attached_to_doctype/attached_to_name/attached_to_field and never checks that the user can write to the target document, so a File can be attached to any record via the REST API. Fixed by check_write_permission(attached_to_doctype, attached_to_name) unless ignore_permissions.",
+      "ghsa": "GHSA-fwrv-4rw4-97fw",
+      "fix_commit": "6f23777977b1db02b55dd0569fcdf3fcb6fc9086"
+    },
+    {
+      "id": "unzip-without-permission",
+      "category": "security",
+      "file": "frappe/core/doctype/file/file.py",
+      "lines": [
+        587,
+        592
+      ],
+      "note": "File.unzip (reached from whitelisted frappe.core.api.file.unzip_file via frappe.get_doc, no permission check) extracts any zip File by name without checking the caller can read it. Fixed by self.check_permission('read') in unzip.",
+      "fix_commit": "360527509fc2b6aa057a240cd0551d2e6984d286"
+    },
+    {
+      "id": "file-list-ignores-if-owner",
+      "category": "security",
+      "file": "frappe/core/doctype/file/file.py",
+      "lines": [
+        955,
+        968
+      ],
+      "note": "get_permission_query_conditions lets System Users list every private File attached to any doctype they have some read on, ignoring if_owner (and shares/user permissions), which leaks private-file metadata in list/report views. Fixed by splitting doctypes by owner constraint and adding EXISTS owner checks (later also shares and user permissions).",
+      "ghsa": "GHSA-7cxg-q8x5-rpjh",
+      "fix_commit": "d6e61bc5524f4a291081091349be98bfb52730cd"
+    },
+    {
+      "id": "add-attachments-no-permission",
+      "category": "security",
+      "file": "frappe/utils/file_manager.py",
+      "lines": [
+        398,
+        414
+      ],
+      "note": "Whitelisted add_attachments copies any File (by name, including private ones) onto any doctype/name. It checks neither write permission on the target nor read permission on the source file, and save_file then inserts with ignore_permissions. Fixed by has_permission(doctype, 'write', doc=name) and has_permission('File', 'read', doc=a).",
+      "ghsa": "GHSA-fwrv-4rw4-97fw",
+      "fix_commit": "ab070e609049846ee8cbb2aa66c24f4abbc154c6"
+    },
+    {
+      "id": "write-file-path-traversal",
+      "category": "security",
+      "file": "frappe/utils/file_manager.py",
+      "lines": [
+        228,
+        238
+      ],
+      "note": "write_file joins the files directory with an unvalidated fname and opens it for writing. A filename with '../', an absolute path or a nested path writes outside the files directory, which can lead to RCE. Callers such as save_file/save_file_on_filesystem pass the uploaded filename through get_file_name, which does not sanitise it. Fixed by requiring realpath(dirname(join(file_path, fname))) == realpath(file_path). Note: no whitelisted entry point in scope calls this directly; the sink is reached through server-side callers (including apps) that pass user filenames.",
+      "ghsa": "GHSA-9pp9-wgp9-3p3j",
+      "fix_commit": "582dc461d81294e768aa394546cdd4576464aac6"
+    },
+    {
+      "id": "get-file-path-no-containment",
+      "category": "security",
+      "file": "frappe/utils/file_manager.py",
+      "lines": [
+        360,
+        374
+      ],
+      "note": "get_file_path maps a stored file_url to a disk path with only a '../' substring check on the input name and no containment check on the resolved path, so a File whose file_url contains traversal segments resolves outside the files directory (e.g. to site_config.json) for get_file/download callers. Fixed by checking that the realpath stays under get_files_path(is_private) (3a324027e5, 4bb682d19f, final commonpath check in 5eb355f16c).",
+      "fix_commit": "5eb355f16cd08e00e450db70656b04e99cfd2f11"
+    },
+    {
+      "id": "file-extension-allowlist-bypass",
+      "category": "security",
+      "file": "frappe/core/doctype/file/file.py",
+      "lines": [
+        423,
+        436
+      ],
+      "note": "validate_file_extension returns early when file_type is empty and compares the mimetypes-derived file_type, not the real extension, so files whose extension mimetypes does not recognise (or maps to an allowed type) bypass the System Settings allowed_file_extensions restriction. Fixed by checking the raw extension from file_name.",
+      "fix_commit": "4ae61cdc26fea1abe4a8cc65a6776e1c12e36f1f"
+    }
+  ],
+  "decoys": [
+    {
+      "id": "create-attachment-copy-flag",
+      "file": "frappe/core/doctype/file/file.py",
+      "lines": [
+        152,
+        162
+      ],
+      "note": "Not whitelisted; ignore_permissions defaults to False and is set only by server-side callers."
+    }
+  ]
+}

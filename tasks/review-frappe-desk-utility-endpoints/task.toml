@@ -1,0 +1,18 @@
+schema_version = "1.4"
+
+[task]
+name = "frappe-agentbench/review-frappe-desk-utility-endpoints"
+version = "1.0.0"
+description = "Find real, since fixed vulnerabilities in Frappe Framework: small desk helper endpoints: calendar events and attendance, restoring deleted documents, form tour resets, and SMS sending."
+keywords = ["review", "security", "real-code", "frappe"]
+
+[verifier]
+timeout_sec = 120.0
+environment_mode = "shared"
+
+[agent]
+timeout_sec = 1800.0
+
+[environment]
+network_mode = "public"
+build_timeout_sec = 900.0

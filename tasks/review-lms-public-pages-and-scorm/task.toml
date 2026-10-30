@@ -1,0 +1,18 @@
+schema_version = "1.4"
+
+[task]
+name = "frappe-agentbench/review-lms-public-pages-and-scorm"
+version = "1.0.0"
+description = "Find real, since fixed vulnerabilities in Frappe Learning: server-rendered SEO/meta tags for the Learning SPA shell, the SCORM package upload/extraction and file-serving renderer, and the general LMS whitelisted API module (certified participants, profiles, meta tags, video tracking)."
+keywords = ["review", "security", "real-code", "lms"]
+
+[verifier]
+timeout_sec = 120.0
+environment_mode = "shared"
+
+[agent]
+timeout_sec = 1800.0
+
+[environment]
+network_mode = "public"
+build_timeout_sec = 900.0

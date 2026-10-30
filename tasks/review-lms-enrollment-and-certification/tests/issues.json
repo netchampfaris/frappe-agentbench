@@ -1,0 +1,131 @@
+{
+  "repo": "frappe/lms",
+  "snapshot": "6c2978306c55a5e862d5e3e9a76eca1b34f2f6b6",
+  "issues": [
+    {
+      "id": "course-details-unpublished-exposed",
+      "category": "security",
+      "file": "lms/lms/utils.py",
+      "lines": [
+        1115,
+        1121
+      ],
+      "note": "get_course_details() is allow_guest and returns full details (description, price, lessons, instructors) for any course name, including unpublished courses, with no published/can-modify check. Fixed by returning {} for unpublished courses unless can_modify_course().",
+      "ghsa": "GHSA-26vf-p39q-frx3",
+      "fix_commit": "24a511f48e233d6422355840bf00be894311ac2a"
+    },
+    {
+      "id": "batch-details-leaks-student-list",
+      "category": "security",
+      "file": "lms/lms/utils.py",
+      "lines": [
+        1398,
+        1401
+      ],
+      "note": "get_batch_details() (allow_guest) sets batch_details.students to the full list of enrolled members' user IDs (emails) for every caller who can see the batch, e.g. anyone for a published batch. Fixed by returning the list only to batch admins (can_modify_batch) and just [session user] to enrolled students.",
+      "ghsa": "GHSA-3gw9-gwjm-vcq5",
+      "fix_commit": "24a511f48e233d6422355840bf00be894311ac2a"
+    },
+    {
+      "id": "enroll-in-batch-no-eligibility-check",
+      "category": "security",
+      "file": "lms/lms/utils.py",
+      "lines": [
+        2059,
+        2066
+      ],
+      "note": "Whitelisted enroll_in_batch() only checks duplicates and seat count; it does not check that the batch is published, allows self-enrollment, or (for paid batches) that payment_name refers to a received payment, so students can self-enroll into unpublished or paid batches. Fixed by validate_enrollment_eligibility().",
+      "ghsa": "GHSA-2ch7-c74m-432m",
+      "fix_commit": "b3e90c7f2fac0a8d159a4e24c0266146d1e7429e"
+    },
+    {
+      "id": "enroll-in-program-unpublished",
+      "category": "security",
+      "file": "lms/lms/utils.py",
+      "lines": [
+        2170,
+        2174
+      ],
+      "note": "enroll_in_program() inserts an LMS Program Member with ignore_permissions for any program name without checking that the program is published. Fixed by rejecting unpublished programs.",
+      "ghsa": "GHSA-2ch7-c74m-432m",
+      "fix_commit": "836a6d12035425ba929b7e87a409bad0a6bf46c5"
+    },
+    {
+      "id": "create-membership-no-eligibility-check",
+      "category": "security",
+      "file": "lms/lms/doctype/lms_enrollment/lms_enrollment.py",
+      "lines": [
+        78,
+        81
+      ],
+      "note": "Whitelisted create_membership() only refuses when disable_self_learning is set; it enrolls in unpublished and paid courses without a payment check, and also accepts an arbitrary member argument. Fixed by validate_course_enrollment_eligibility() (published + payment checks); the member parameter was only locked down later.",
+      "ghsa": "GHSA-2ch7-c74m-432m",
+      "fix_commit": "466b248c30c03a5bb733b9c8dd3dd56a6dc9809d"
+    },
+    {
+      "id": "batch-enrollment-for-other-users",
+      "category": "security",
+      "file": "lms/lms/doctype/lms_batch_enrollment/lms_batch_enrollment.py",
+      "lines": [
+        17,
+        19
+      ],
+      "note": "LMSBatchEnrollment.validate() has no check that a non-staff creator is enrolling themselves, so a student with create permission can create LMS Batch Enrollment rows for other users (and, via validate_course_enrollment, auto-create LMS Enrollments for them). Fixed by validate_owner() requiring Moderator/Batch Evaluator when owner != member.",
+      "ghsa": "GHSA-2ch7-c74m-432m",
+      "fix_commit": "836a6d12035425ba929b7e87a409bad0a6bf46c5"
+    },
+    {
+      "id": "certificate-without-completion",
+      "category": "security",
+      "file": "lms/lms/doctype/lms_certificate/lms_certificate.py",
+      "lines": [
+        116,
+        125
+      ],
+      "note": "Whitelisted create_certificate(course) issues an LMS Certificate for the caller with ignore_permissions without checking enrollment, that certification is enabled, or that progress is 100%; LMSCertificate.validate() only checks duplicates. Fixed by validate_certification_eligibility().",
+      "ghsa": "GHSA-2ch7-c74m-432m",
+      "fix_commit": "836a6d12035425ba929b7e87a409bad0a6bf46c5"
+    },
+    {
+      "id": "unpublished-certificate-website-read",
+      "category": "security",
+      "file": "lms/lms/doctype/lms_certificate/lms_certificate.py",
+      "lines": [
+        108,
+        110
+      ],
+      "note": "has_website_permission() grants read/print on every LMS Certificate regardless of its published flag, so unpublished certificates (and member details) are viewable by anyone via the website/print routes. Fixed by also requiring doc.published.",
+      "ghsa": "GHSA-xjj9-h64v-254g",
+      "fix_commit": "e0a898825ebf924f376ff8985c4248fc48139cf5"
+    }
+  ],
+  "decoys": [
+    {
+      "id": "get-roles-moderator-only",
+      "file": "lms/lms/utils.py",
+      "lines": [
+        1953,
+        1961
+      ],
+      "note": "get_roles(name) takes an arbitrary user but is guarded by frappe.only_for('Moderator')."
+    },
+    {
+      "id": "enroll-in-course-internal",
+      "file": "lms/lms/utils.py",
+      "lines": [
+        2044,
+        2052
+      ],
+      "note": "enroll_in_course() uses ignore_permissions but is not whitelisted; it is only reached from the payment completion flow and always enrolls frappe.session.user."
+    },
+    {
+      "id": "can-create-courses-instructor-check",
+      "file": "lms/lms/utils.py",
+      "lines": [
+        492,
+        504
+      ],
+      "note": "can_create_courses() correctly requires Moderator, or Course Creator who is an instructor of that course (or creating a new one), and rejects Guest."
+    }
+  ]
+}

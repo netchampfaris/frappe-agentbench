@@ -1,0 +1,9 @@
+#!/bin/sh
+# Usage: fetch-snapshot <owner/repo> <commit> <dir>
+# Checks out one commit without history, so later fixes cannot be read from git.
+set -eu
+git init -q "$3"
+cd "$3"
+git fetch -q --depth 1 "https://github.com/$1" "$2"
+git checkout -q FETCH_HEAD
+rm -rf .git

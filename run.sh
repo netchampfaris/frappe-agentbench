@@ -1,6 +1,6 @@
 #!/bin/bash
 # Usage:
-#   ./run.sh build                 Build the Frappe base image all tasks start from
+#   ./run.sh build                 Build the images tasks start from
 #   ./run.sh check                 Reference solutions must score 1, doing nothing must score 0
 #   ./run.sh claude [model] [...]  Run Claude Code (default model: claude-opus-5-5)
 #   ./run.sh codex [model] [...]   Run Codex with ~/.codex/auth.json (default: Codex's own default)
@@ -14,22 +14,26 @@ cd "$(dirname "$0")"
 [ -f .env ] && set -a && . ./.env && set +a
 harbor() { uv run --quiet harbor "$@"; }
 run() { harbor run -p tasks -o jobs -n "${CONCURRENCY:-4}" "$@"; }
+# Web tools are off: review tasks are real fixed vulnerabilities, and their
+# advisories are public.
+no_web=(--ak disable_web_search=true)
 # After an agent run, refresh the data the dashboard serves.
 run_agent() { run "$@"; uv run --quiet report.py --json dashboard/results.json; }
 
 command="${1:-}"; shift || true
 case "$command" in
   build)
-    docker build -t frappe-agentbench-base:v16 base ;;
+    docker build -t frappe-agentbench-base:v16 base
+    docker build -t frappe-agentbench-source:v1 -f source/Dockerfile . ;;
   check)
     run -a oracle "$@"
     run -a nop "$@" ;;
   claude)
     model="${1:-claude-opus-5-5}"; shift || true
-    run_agent -a claude-code -m "anthropic/$model" "$@" ;;
+    run_agent -a claude-code -m "anthropic/$model" "${no_web[@]}" "$@" ;;
   codex)
     model=(); [ -n "${1:-}" ] && [[ "$1" != -* ]] && { model=(-m "openai/$1"); shift; }
-    CODEX_FORCE_AUTH_JSON=1 run_agent -a codex "${model[@]}" "$@" ;;
+    CODEX_FORCE_AUTH_JSON=1 run_agent -a codex "${model[@]}" "${no_web[@]}" "$@" ;;
   deepseek)
     : "${DEEPSEEK_BASE_URL:?Set DEEPSEEK_BASE_URL in .env}" "${DEEPSEEK_API_KEY:?Set DEEPSEEK_API_KEY in .env}"
     OPENAI_API_KEY="$DEEPSEEK_API_KEY" run_agent -a pi -m "deepseek/${DEEPSEEK_MODEL:-deepseek-v4.1-flash}" \

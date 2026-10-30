@@ -1,0 +1,160 @@
+{
+  "repo": "frappe/erpnext",
+  "snapshot": "e99966a38ec83555919ea1d0f7155e53f6b00a4e",
+  "issues": [
+    {
+      "id": "portal-get-task-html-no-permission",
+      "category": "security",
+      "file": "erpnext/templates/pages/projects.py",
+      "lines": [
+        67,
+        79
+      ],
+      "note": "Whitelisted get_task_html renders the task list (subjects, status, assignees) of any caller-supplied project; get_tasks uses frappe.get_all, so any logged-in user, including website users, can read tasks of any project. The page's get_context checks project membership but this endpoint does not. Fixed by validate_and_get_project_user (get_doc + check_permission). The endpoint was first removed in 7c6b13a838 (v16.22.0), restored by a revert, then fixed properly in 72b72a81fa.",
+      "ghsa": "GHSA-q3vp-8w4j-x78w",
+      "fix_commit": "72b72a81fa8085af3d56c3827ebef70e459fc85c"
+    },
+    {
+      "id": "portal-get-timesheet-html-no-permission",
+      "category": "security",
+      "file": "erpnext/templates/pages/projects.py",
+      "lines": [
+        107,
+        113
+      ],
+      "note": "Whitelisted get_timesheet_html returns timesheet rows (activity, times, status, modifier) of any project via frappe.get_all with no permission or membership check, and ignores the hide_timesheets setting. Fixed together with get_task_html.",
+      "ghsa": "GHSA-q3vp-8w4j-x78w",
+      "fix_commit": "72b72a81fa8085af3d56c3827ebef70e459fc85c"
+    },
+    {
+      "id": "create-duplicate-project-reads-foreign-tasks",
+      "category": "security",
+      "file": "erpnext/projects/doctype/project/project.py",
+      "lines": [
+        645,
+        656
+      ],
+      "note": "create_duplicate_project trusts the caller-supplied prev_doc and copies every Task of prev_doc['name'] (frappe.get_all + get_doc + copy_doc) into a new project the caller owns, so a user with Project create can clone tasks of a project they cannot read. Fixed by frappe.has_permission('Project', 'read', source_name, throw=True).",
+      "fix_commit": "8c8b282a2ef5f10a22acc5e009863b313f2450bf"
+    },
+    {
+      "id": "update-costing-and-billing-no-write-check",
+      "category": "security",
+      "file": "erpnext/projects/doctype/project/project.py",
+      "lines": [
+        829,
+        833
+      ],
+      "note": "Whitelisted update_costing_and_billing loads any Project and calls project.db_update() after recomputing costs, with no permission check, so any logged-in user can write to any project row. Fixed by project.check_permission('write').",
+      "fix_commit": "a20fc4f9317ecc7d262625aea680c9a0cda98cef"
+    },
+    {
+      "id": "projectwise-timesheet-data-unscoped",
+      "category": "security",
+      "file": "erpnext/projects/doctype/timesheet/timesheet.py",
+      "lines": [
+        304,
+        315
+      ],
+      "note": "Whitelisted get_projectwise_timesheet_data returns billing hours, billing amounts, descriptions and currency for any project/timesheet through a raw query-builder join that applies no permissions. Fixed by restricting to frappe.get_list('Timesheet') and frappe.get_list('Project') names.",
+      "fix_commit": "d5df40986d72a55d414ddaf4d382883f9df31e41"
+    },
+    {
+      "id": "timesheet-detail-rate-unscoped",
+      "category": "security",
+      "file": "erpnext/projects/doctype/timesheet/timesheet.py",
+      "lines": [
+        348,
+        360
+      ],
+      "note": "Whitelisted get_timesheet_detail_rate returns the billing amount of any Timesheet Detail row by name via an unscoped qb query. Fixed by limiting to timesheets returned by frappe.get_list.",
+      "fix_commit": "d5df40986d72a55d414ddaf4d382883f9df31e41"
+    },
+    {
+      "id": "portal-task-subject-xss",
+      "category": "security",
+      "file": "erpnext/templates/includes/projects/project_tasks.html",
+      "lines": [
+        4,
+        11
+      ],
+      "note": "project_tasks.html prints {{ task.subject }} without |e. Frappe's Jinja environment does not auto-escape, so a user who can create a Task (including through the task web form) stores HTML that runs for anyone viewing the project portal or calling get_task_html. Fixed by `| e`.",
+      "fix_commit": "09e1c6024d8ccba49921a3507704d77ce039bb92"
+    },
+    {
+      "id": "portal-assignee-full-name-attribute-xss",
+      "category": "security",
+      "file": "erpnext/templates/includes/projects/project_tasks.html",
+      "lines": [
+        29,
+        33
+      ],
+      "note": "project_tasks.html puts the assigned user's full_name into title=\"...\" without escaping. Any user can set their own full name, so a quote breaks out of the attribute in the session of whoever views the project tasks. Fixed by `| e` (same fix also in project_row.html and project_timesheets.html).",
+      "fix_commit": "4c0f0299ea87d77a1ef4222ab3523c968cff8f0b"
+    },
+    {
+      "id": "get-timesheet-search-unscoped",
+      "category": "security",
+      "file": "erpnext/projects/doctype/timesheet/timesheet.py",
+      "lines": [
+        376,
+        390
+      ],
+      "note": "Whitelisted search get_timesheet builds a raw qb query over Timesheet Detail/Timesheet without applying Timesheet permissions, so any user can enumerate billable timesheet names (optionally per project). Fixed by restricting results to frappe.get_list('Timesheet') names.",
+      "fix_commit": "d5df40986d72a55d414ddaf4d382883f9df31e41"
+    },
+    {
+      "id": "get-timesheet-data-unscoped",
+      "category": "security",
+      "file": "erpnext/projects/doctype/timesheet/timesheet.py",
+      "lines": [
+        398,
+        411
+      ],
+      "note": "Whitelisted get_timesheet_data returns billing hours and billing amounts of any Timesheet by name through frappe.get_all (no permission check). Fixed by switching to frappe.get_list (and scoping the project path).",
+      "fix_commit": "d5df40986d72a55d414ddaf4d382883f9df31e41"
+    },
+    {
+      "id": "make-sales-invoice-no-timesheet-read",
+      "category": "security",
+      "file": "erpnext/projects/doctype/timesheet/timesheet.py",
+      "lines": [
+        419,
+        424
+      ],
+      "note": "Whitelisted make_sales_invoice loads any Timesheet with frappe.get_doc and returns a draft Sales Invoice containing its unbilled time logs (times, hours, billing amounts, descriptions) without checking Timesheet read. Fixed by timesheet.check_permission('read').",
+      "fix_commit": "3e7d6fe8258057d38dd6204b3aec056a77d16607"
+    },
+    {
+      "id": "create-kanban-board-no-project-check",
+      "category": "security",
+      "file": "erpnext/projects/doctype/project/project.py",
+      "lines": [
+        771,
+        779
+      ],
+      "note": "Whitelisted create_kanban_board_if_not_exists loads any Project with frappe.get_doc and creates a Kanban Board named after it without checking Project read, so a user without access can confirm project names and create boards for them. Fixed by project.check_permission('read').",
+      "fix_commit": "06fcba238b27a8ea4a8b31dd833da93ee4c07dbe"
+    }
+  ],
+  "decoys": [
+    {
+      "id": "set-project-status-checks-write",
+      "file": "erpnext/projects/doctype/project/project.py",
+      "lines": [
+        787,
+        797
+      ],
+      "note": "POST-only, restricts status to two values and calls project.check_permission('write') before changing anything."
+    },
+    {
+      "id": "timesheet-get-events-match-conditions",
+      "file": "erpnext/projects/doctype/timesheet/timesheet.py",
+      "lines": [
+        528,
+        535
+      ],
+      "note": "Raw qb join, but get_event_conditions_qb throws without Timesheet read permission and adds the user-permission match conditions; start/end are bound parameters."
+    }
+  ]
+}

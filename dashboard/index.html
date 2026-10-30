@@ -34,12 +34,15 @@
   section > .sub { margin-bottom: 16px; }
   .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px; }
 
-  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(220px, 1fr)); gap: 12px; }
+  .tiles { display: grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
   .tile { padding: 16px 18px; }
   .tile .model { color: var(--ink-2); font-size: 13px; }
   .tile .score { font-size: 32px; font-weight: 600; letter-spacing: -0.02em; margin: 2px 0; }
   .tile .score small { font-size: 14px; color: var(--muted); font-weight: 400; }
   .tile .facts { color: var(--muted); font-size: 13px; }
+  .tile .kinds { display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin: 10px 0 6px; }
+  .tile .kinds div { font-size: 12px; color: var(--muted); }
+  .tile .kinds b { display: block; font-size: 22px; font-weight: 600; color: var(--ink); letter-spacing: -0.02em; }
 
   .scroll { overflow-x: auto; }
   table { border-collapse: separate; border-spacing: 2px; width: 100%; }
@@ -52,6 +55,11 @@
   .heat td.cell span { display: block; font-size: 12px; font-weight: 400; opacity: 0.8; }
   .heat td.rowhead { padding: 6px 10px; white-space: nowrap; }
   .heat td.rowhead .note { color: var(--muted); font-size: 12px; }
+  .heat td.group { padding: 14px 10px 4px; color: var(--muted); font-size: 12px; font-weight: 500; }
+  .heat td.rowhead a, summary a { color: var(--muted); font-size: 12px; margin-left: 6px; }
+  details { margin-bottom: 8px; }
+  summary { cursor: pointer; padding: 10px 12px; font-weight: 500; }
+  summary .note { color: var(--muted); font-weight: 400; font-size: 13px; margin-left: 6px; }
   .tag {
     display: inline-block; font-size: 11px; padding: 0 6px; border-radius: 4px; margin-left: 6px;
     border: 1px solid var(--border); color: var(--ink-2); vertical-align: 1px;
@@ -88,26 +96,26 @@
 <main>
   <header>
     <h1>Frappe Agent Bench</h1>
-    <p class="sub">How well coding agents write and review Frappe Framework v16 code.</p>
+    <p class="sub">How well coding agents write Frappe Framework code, and find security problems in real Frappe apps.</p>
     <p class="meta" id="meta"></p>
   </header>
 
   <section>
-    <h2>Overall score</h2>
-    <p class="sub">Mean score over every attempt. A task scores 0 to 1; "solved" means a perfect score.</p>
+    <h2>Score by kind of task</h2>
+    <p class="sub">Mean score over every attempt of each kind. A task scores 0 to 1; "solved" means a perfect score.</p>
     <div class="tiles" id="tiles"></div>
   </section>
 
   <section>
     <h2>Score by task</h2>
-    <p class="sub">Mean score per task, and attempts solved. Hover a cell for time and tokens.</p>
+    <p class="sub">Mean score per task, and attempts solved. Hover a task for what it tests, and a cell for time and tokens.</p>
     <div class="card scroll" style="padding: 8px"><table class="heat" id="by-task"></table></div>
     <div class="legend"><span>0</span><div class="ramp" id="ramp"></div><span>1</span></div>
   </section>
 
   <section id="review-section">
     <h2>Review tasks: issues found</h2>
-    <p class="sub">Share of attempts that reported each planted issue. Hover an issue for what is wrong.</p>
+    <p class="sub">Share of attempts that reported each issue. Hover an issue for what is wrong. Real vulnerabilities link to their advisory and fix.</p>
     <div id="review"></div>
   </section>
 
@@ -122,7 +130,8 @@
 
   <footer>
     Build tasks: the score is the share of hidden tests that pass.
-    Review tasks: issues found ÷ (planted issues + decoys flagged), so flagging correct code costs as much as missing a problem.
+    Review tasks: issues found ÷ (known issues + decoys flagged), so flagging correct code costs as much as missing a problem.
+    Planted reviews use small code written for the benchmark. Real vulnerability tasks use a snapshot of a Frappe app taken before published security fixes.
     <br><a href="https://github.com/netchampfaris/frappe-agentbench">Source and tasks on GitHub</a>
   </footer>
 </main>
@@ -139,6 +148,12 @@ const fmt = (n) => n.toFixed(2);
 const mins = (s) => `${(s / 60).toFixed(1)} min`;
 const esc = (s) => String(s).replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
 const $ = (id) => document.getElementById(id);
+const KINDS = [
+  { key: "build", label: "Build" },
+  { key: "review", label: "Planted review" },
+  { key: "real", label: "Real vulnerabilities" },
+];
+const gh = (repo, path) => `https://github.com/${repo}/${path}`;
 
 const tip = $("tip");
 function bindTip(el, html) {
@@ -177,46 +192,61 @@ function render({ generated_at, tasks, trials }) {
     `updated ${new Date(generated_at).toLocaleString(undefined, { dateStyle: "medium", timeStyle: "short" })}`;
   $("ramp").innerHTML = RAMP.map((c) => `<i style="background:${c}"></i>`).join("");
 
+  const kindOf = (name) => tasks.find((t) => t.name === name).kind;
+  const kinds = KINDS.filter((k) => taskNames.some((n) => kindOf(n) === k.key));
+
   // Tiles
   $("tiles").innerHTML = models.map((m) => {
     const ts = of(m);
     const agent = ts[0].agent;
+    const byKind = kinds.map((k) => {
+      const kt = ts.filter((t) => kindOf(t.task) === k.key);
+      return `<div><b>${kt.length ? fmt(mean(kt.map((t) => t.reward))) : "–"}</b>${k.label}</div>`;
+    }).join("");
     return `<div class="card tile"><div class="model">${esc(m)} <span class="tag">${esc(agent)}</span></div>
-      <div class="score">${fmt(mean(ts.map((t) => t.reward)))}</div>
+      <div class="kinds">${byKind}</div>
       <div class="facts">${ts.filter((t) => t.solved).length}/${ts.length} solved · ${mins(mean(ts.map((t) => t.seconds)))} per task</div></div>`;
   }).join("");
 
   // Model x task heat table
   const byTask = $("by-task");
-  byTask.innerHTML = `<tr><th></th>${taskNames.map((n) => {
-    const t = tasks.find((x) => x.name === n);
-    return `<th title="${esc(t.description)}">${esc(n)}<span class="tag">${t.kind}</span></th>`;
-  }).join("")}</tr>`;
-  for (const m of models) {
-    const tr = byTask.insertRow();
-    tr.innerHTML = `<td class="rowhead">${esc(m)}</td>`;
-    for (const n of taskNames) {
-      const ts = of(m, n);
-      if (!ts.length) { tr.insertCell(); continue; }
-      const s = mean(ts.map((t) => t.reward));
-      const solved = ts.filter((t) => t.solved).length;
-      tr.appendChild(heatCell(s, fmt(s), `${solved}/${ts.length} solved`,
-        `<b>${esc(m)}</b> · ${esc(n)}<br>Score ${fmt(s)}, ${solved}/${ts.length} solved<br>` +
-        `<span class="m">${mins(mean(ts.map((t) => t.seconds)))} · ${Math.round(mean(ts.map((t) => t.output_tokens))).toLocaleString()} output tokens</span>`));
+  byTask.innerHTML = `<tr><th></th>${models.map((m) => `<th>${esc(m)}</th>`).join("")}</tr>`;
+  for (const k of kinds) {
+    byTask.insertRow().innerHTML = `<td class="group" colspan="${models.length + 1}">${k.label}</td>`;
+    for (const n of taskNames.filter((n) => kindOf(n) === k.key)) {
+      const tr = byTask.insertRow();
+      const head = tr.insertCell();
+      head.className = "rowhead";
+      head.textContent = n;
+      bindTip(head, esc(tasks.find((t) => t.name === n).description));
+      for (const m of models) {
+        const ts = of(m, n);
+        if (!ts.length) { tr.insertCell(); continue; }
+        const s = mean(ts.map((t) => t.reward));
+        const solved = ts.filter((t) => t.solved).length;
+        tr.appendChild(heatCell(s, fmt(s), `${solved}/${ts.length} solved`,
+          `<b>${esc(m)}</b> · ${esc(n)}<br>Score ${fmt(s)}, ${solved}/${ts.length} solved<br>` +
+          `<span class="m">${mins(mean(ts.map((t) => t.seconds)))} · ${Math.round(mean(ts.map((t) => t.output_tokens))).toLocaleString()} output tokens</span>`));
+      }
     }
   }
 
   // Review issue tables
-  const reviewTasks = tasks.filter((t) => t.kind === "review" && taskNames.includes(t.name));
+  const reviewTasks = tasks.filter((t) => t.kind !== "build" && taskNames.includes(t.name));
   $("review-section").hidden = !reviewTasks.length;
   $("review").innerHTML = "";
   for (const task of reviewTasks) {
-    const card = document.createElement("div");
-    card.className = "card scroll";
-    card.style.cssText = "padding: 8px; margin-bottom: 12px";
+    const card = document.createElement("details");
+    card.className = "card";
+    const scores = models.map((m) => of(m, task.name)).filter((ts) => ts.length).map((ts) => mean(ts.map((t) => t.reward)));
+    card.innerHTML = `<summary>${esc(task.name)}<span class="note">${task.issues.length} issues` +
+      (scores.length ? ` · mean score ${fmt(mean(scores))}` : "") + `</span>` +
+      (task.repo ? `<a href="${gh(task.repo, `tree/${task.snapshot}`)}">${esc(task.repo)} @ ${task.snapshot.slice(0, 7)}</a>` : "") +
+      `</summary>`;
     const table = document.createElement("table");
     table.className = "heat";
-    table.innerHTML = `<tr><th>${esc(task.name)}</th>${models.map((m) => `<th>${esc(m)}</th>`).join("")}</tr>`;
+    table.style.padding = "0 8px 8px";
+    table.innerHTML = `<tr><th>Issue</th>${models.map((m) => `<th>${esc(m)}</th>`).join("")}</tr>`;
     const rate = (issue) => mean(models.map((m) => {
       const ts = of(m, task.name); return ts.length ? ts.filter((t) => t.issues[issue.id]).length / ts.length : 0;
     }));
@@ -224,7 +254,9 @@ function render({ generated_at, tasks, trials }) {
       const tr = table.insertRow();
       const head = tr.insertCell();
       head.className = "rowhead";
-      head.innerHTML = `${esc(issue.id)}<span class="tag">${esc(issue.category)}</span>`;
+      head.innerHTML = esc(issue.id) + (task.repo ? "" : `<span class="tag">${esc(issue.category)}</span>`) +
+        (issue.ghsa ? `<a href="${gh(task.repo, `security/advisories/${issue.ghsa}`)}">advisory</a>` : "") +
+        (issue.fix_commit ? `<a href="${gh(task.repo, `commit/${issue.fix_commit}`)}">fix</a>` : "");
       bindTip(head, `<b>${esc(issue.id)}</b><br>${esc(issue.note)}`);
       for (const m of models) {
         const ts = of(m, task.name);
@@ -237,7 +269,10 @@ function render({ generated_at, tasks, trials }) {
     const tr = table.insertRow();
     tr.innerHTML = `<td class="rowhead">decoys flagged <span class="note">(correct code reported as wrong)</span></td>` +
       models.map((m) => `<td class="num" style="text-align:center">${of(m, task.name).reduce((a, t) => a + t.decoy_hits, 0)}</td>`).join("");
-    card.appendChild(table);
+    const wrap = document.createElement("div");
+    wrap.className = "scroll";
+    wrap.appendChild(table);
+    card.appendChild(wrap);
     $("review").appendChild(card);
   }
 

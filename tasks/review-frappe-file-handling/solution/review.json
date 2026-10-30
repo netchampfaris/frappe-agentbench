@@ -1,0 +1,58 @@
+{
+  "findings": [
+    {
+      "file": "frappe/core/doctype/file/file.py",
+      "line": 104,
+      "category": "security",
+      "summary": "before_insert/validate accept a caller-supplied file_url that points at an existing private file and never check the caller can read that file. The new File is owned by the caller, so has_permission grants them access and /private/files download succeeds. Fixed by validate_private_file_access() in before_insert."
+    },
+    {
+      "file": "frappe/core/doctype/file/file.py",
+      "line": 625,
+      "category": "security",
+      "summary": "get_content reads get_full_path() after only validate_file_url (prefix check). get_full_path only checks is_safe_path, which allows anything inside the site directory, and before_insert calls get_content before validate runs, so a File created with file_url '/files/../../site_config.json' and no content copies site_config.json into a new readable file. Fixed by calling self.validate_file_path() in get_content."
+    },
+    {
+      "file": "frappe/core/doctype/file/file.py",
+      "line": 181,
+      "category": "security",
+      "summary": "validate_attachment_references validates only the shape of attached_to_doctype/attached_to_name/attached_to_field and never checks that the user can write to the target document, so a File can be attached to any record via the REST API. Fixed by check_write_permission(attached_to_doctype, attached_to_name) unless ignore_permissions."
+    },
+    {
+      "file": "frappe/core/doctype/file/file.py",
+      "line": 587,
+      "category": "security",
+      "summary": "File.unzip (reached from whitelisted frappe.core.api.file.unzip_file via frappe.get_doc, no permission check) extracts any zip File by name without checking the caller can read it. Fixed by self.check_permission('read') in unzip."
+    },
+    {
+      "file": "frappe/core/doctype/file/file.py",
+      "line": 955,
+      "category": "security",
+      "summary": "get_permission_query_conditions lets System Users list every private File attached to any doctype they have some read on, ignoring if_owner (and shares/user permissions), which leaks private-file metadata in list/report views. Fixed by splitting doctypes by owner constraint and adding EXISTS owner checks (later also shares and user permissions)."
+    },
+    {
+      "file": "frappe/utils/file_manager.py",
+      "line": 398,
+      "category": "security",
+      "summary": "Whitelisted add_attachments copies any File (by name, including private ones) onto any doctype/name. It checks neither write permission on the target nor read permission on the source file, and save_file then inserts with ignore_permissions. Fixed by has_permission(doctype, 'write', doc=name) and has_permission('File', 'read', doc=a)."
+    },
+    {
+      "file": "frappe/utils/file_manager.py",
+      "line": 228,
+      "category": "security",
+      "summary": "write_file joins the files directory with an unvalidated fname and opens it for writing. A filename with '../', an absolute path or a nested path writes outside the files directory, which can lead to RCE. Callers such as save_file/save_file_on_filesystem pass the uploaded filename through get_file_name, which does not sanitise it. Fixed by requiring realpath(dirname(join(file_path, fname))) == realpath(file_path). Note: no whitelisted entry point in scope calls this directly; the sink is reached through server-side callers (including apps) that pass user filenames."
+    },
+    {
+      "file": "frappe/utils/file_manager.py",
+      "line": 360,
+      "category": "security",
+      "summary": "get_file_path maps a stored file_url to a disk path with only a '../' substring check on the input name and no containment check on the resolved path, so a File whose file_url contains traversal segments resolves outside the files directory (e.g. to site_config.json) for get_file/download callers. Fixed by checking that the realpath stays under get_files_path(is_private) (3a324027e5, 4bb682d19f, final commonpath check in 5eb355f16c)."
+    },
+    {
+      "file": "frappe/core/doctype/file/file.py",
+      "line": 423,
+      "category": "security",
+      "summary": "validate_file_extension returns early when file_type is empty and compares the mimetypes-derived file_type, not the real extension, so files whose extension mimetypes does not recognise (or maps to an allowed type) bypass the System Settings allowed_file_extensions restriction. Fixed by checking the raw extension from file_name."
+    }
+  ]
+}

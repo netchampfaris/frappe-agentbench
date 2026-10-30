@@ -1,0 +1,18 @@
+schema_version = "1.4"
+
+[task]
+name = "frappe-agentbench/review-hrms-pwa-api"
+version = "1.0.0"
+description = "Find real, since fixed vulnerabilities in Frappe HR: the whitelisted API layer behind the HRMS employee mobile app (PWA) and the shift roster UI: attendance, shifts, leave balances, expense claims, advances, attachments and roster helpers."
+keywords = ["review", "security", "real-code", "hrms"]
+
+[verifier]
+timeout_sec = 120.0
+environment_mode = "shared"
+
+[agent]
+timeout_sec = 1800.0
+
+[environment]
+network_mode = "public"
+build_timeout_sec = 900.0

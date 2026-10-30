@@ -1,0 +1,18 @@
+schema_version = "1.4"
+
+[task]
+name = "frappe-agentbench/review-crm-user-access-apis"
+version = "1.0.0"
+description = "Find real, since fixed vulnerabilities in Frappe CRM: Frappe CRM user and access management: inviting users, accepting invitations, assigning CRM roles, session bootstrap data and saved list views"
+keywords = ["review", "security", "real-code", "crm"]
+
+[verifier]
+timeout_sec = 120.0
+environment_mode = "shared"
+
+[agent]
+timeout_sec = 1800.0
+
+[environment]
+network_mode = "public"
+build_timeout_sec = 900.0

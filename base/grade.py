@@ -7,7 +7,11 @@ The tests directory decides the kind of task:
 - test_task.py  Build task. The file is copied into the app and run with
                 `bench run-tests`. reward = share of tests that passed.
 - issues.json   Review task. The agent's review.json is matched against the
-                planted issues. reward = share of issues found (recall).
+                known issues. reward = issues found / (issues + decoys flagged).
+
+Review tasks run either in the Frappe base image, against planted code in the
+acme app, or in the source image (BENCH=/workspace), against a snapshot of a
+real repository taken before its security fixes.
 """
 
 import json
@@ -30,9 +34,6 @@ LINE_SLACK = 3
 
 def main(tests_dir: Path) -> None:
 	LOGS.mkdir(parents=True, exist_ok=True)
-	# The agent, or a crash, may have stopped MariaDB or Redis. This starts
-	# whichever is not running.
-	run("/usr/local/bin/entrypoint.sh", "true")
 	if (tests_dir / "issues.json").exists():
 		reward = grade_review(json.loads((tests_dir / "issues.json").read_text()))
 	else:
@@ -46,6 +47,9 @@ def grade_build(test_file: Path) -> dict[str, float]:
 		print(f"Frappe core was modified, which tasks do not allow:\n{changed}")
 		return build_reward(0, 1)
 
+	# The agent, or a crash, may have stopped MariaDB or Redis. This starts
+	# whichever is not running.
+	run("/usr/local/bin/entrypoint.sh", "true")
 	shutil.rmtree(HIDDEN, ignore_errors=True)
 	HIDDEN.mkdir()
 	(HIDDEN / "__init__.py").touch()

@@ -1,0 +1,133 @@
+{
+  "repo": "frappe/frappe",
+  "snapshot": "374fa3cf6f8a07bec67e20371d8ca3ba08e422c6",
+  "issues": [
+    {
+      "id": "follow-document-for-any-user",
+      "category": "security",
+      "file": "frappe/desk/form/document_follow.py",
+      "lines": [
+        26,
+        37
+      ],
+      "note": "Whitelisted follow_document takes a `user` argument and never checks it against the session user, so any desk user can subscribe any other user (including to documents chosen by the attacker). Fixed by refusing user != session user (later the parameter was removed and the endpoint always uses frappe.session.user).",
+      "ghsa": "GHSA-fgx7-fvpx-mw3g",
+      "fix_commit": "56c602e94df77b707bf40e3a44b93df18fb9c229"
+    },
+    {
+      "id": "unfollow-document-for-any-user",
+      "category": "security",
+      "file": "frappe/desk/form/document_follow.py",
+      "lines": [
+        75,
+        86
+      ],
+      "note": "Whitelisted unfollow_document takes a `user` argument and deletes that user's Document Follow record with force=True, so anyone can unsubscribe other users. Fixed by rejecting user != session user.",
+      "ghsa": "GHSA-fgx7-fvpx-mw3g",
+      "fix_commit": "56c602e94df77b707bf40e3a44b93df18fb9c229"
+    },
+    {
+      "id": "follow-without-read-permission",
+      "category": "security",
+      "file": "frappe/desk/form/document_follow.py",
+      "lines": [
+        61,
+        70
+      ],
+      "note": "follow_document creates a Document Follow without checking that the follower can read the referenced document; the digest email then sends that document's field changes and comments to the follower. Fixed by frappe.has_permission(doctype, 'read', doc=doc_name, user=user).",
+      "ghsa": "GHSA-fgx7-fvpx-mw3g",
+      "fix_commit": "61d8e6df0601559e31fdc55671c34013556f3beb"
+    },
+    {
+      "id": "digest-stale-authorization",
+      "category": "security",
+      "file": "frappe/desk/form/document_follow.py",
+      "lines": [
+        150,
+        158
+      ],
+      "note": "get_message_for_user builds the digest for every followed document without re-checking read permission at send time, so a user whose access was revoked keeps receiving document data. Fixed by checking has_permission per follow and deleting the follow if access is gone.",
+      "ghsa": "GHSA-wcm9-vvcc-r8pr",
+      "fix_commit": "b845bb047186751464b00c2baaa78e0a318d1ae5"
+    },
+    {
+      "id": "digest-ignores-field-permissions",
+      "category": "security",
+      "file": "frappe/desk/form/document_follow.py",
+      "lines": [
+        297,
+        306
+      ],
+      "note": "get_field_changed (and likewise get_row_changed lines 255-280 and get_added_row lines 283-294) copy every changed field's old/new value from Version data into the email without filtering by the recipient's permlevel read access. Fixed by passing user and skipping fields not in meta.get_permitted_fieldnames(permission_type='read', user=user), with a child-table variant.",
+      "ghsa": "GHSA-7vpf-q96h-59x4",
+      "fix_commit": "fd877f833441f911a5992e22f19047112b5c2587"
+    },
+    {
+      "id": "digest-sent-to-disabled-users",
+      "category": "security",
+      "file": "frappe/desk/form/document_follow.py",
+      "lines": [
+        133,
+        144
+      ],
+      "note": "get_user_list selects recipients by document_follow_notify/frequency only, so disabled users keep receiving document change emails. Fixed by adding .where(User.enabled == 1).",
+      "ghsa": "GHSA-55m4-gj6h-q6rc",
+      "fix_commit": "eff6789bd16f3ba93dee3335c54e36913d4c19af"
+    },
+    {
+      "id": "toggle-like-no-permission-check",
+      "category": "security",
+      "file": "frappe/desk/like.py",
+      "lines": [
+        30,
+        37
+      ],
+      "note": "toggle_like/_toggle_like read and write `_liked_by` on any doctype/name and add a Like comment (and may auto-follow) without checking that the caller can read the document. Fixed by frappe.has_permission(doctype, 'read', doc=name, throw=True).",
+      "ghsa": "GHSA-rx6h-4p83-m76x",
+      "fix_commit": "91155d12deba4426cf33196805da77bc78c5cde1"
+    },
+    {
+      "id": "note-mark-as-seen-idor",
+      "category": "security",
+      "file": "frappe/desk/doctype/note/note.py",
+      "lines": [
+        56,
+        60
+      ],
+      "note": "Whitelisted mark_as_seen loads any Note by name with frappe.get_doc and saves it with ignore_permissions=True, letting any user modify (append seen_by to) private notes they cannot read. Fixed by note.check_permission('read').",
+      "ghsa": "GHSA-rx6h-4p83-m76x",
+      "fix_commit": "91155d12deba4426cf33196805da77bc78c5cde1"
+    },
+    {
+      "id": "get-follow-users-no-read-check",
+      "category": "security",
+      "file": "frappe/desk/form/document_follow.py",
+      "lines": [
+        248,
+        252
+      ],
+      "note": "Whitelisted get_follow_users returns the followers of any document via frappe.get_all on Document Follow with no read check on the referenced document, leaking who follows records the caller cannot see. Fixed by frappe.has_permission(doctype, 'read', doc=doc_name, throw=True).",
+      "fix_commit": "4dfa7c4a4fb098763d8223d116c6204258abe919"
+    }
+  ],
+  "decoys": [
+    {
+      "id": "followed-docs-query-builder",
+      "file": "frappe/desk/form/document_follow.py",
+      "lines": [
+        168,
+        177
+      ],
+      "note": "Query builder with the user as a bound value; internal helper, not whitelisted."
+    },
+    {
+      "id": "reset-notes-session-scoped",
+      "file": "frappe/desk/doctype/note/note.py",
+      "lines": [
+        83,
+        86
+      ],
+      "note": "Whitelisted but only clears the cache key of frappe.session.user; no other user's data is reachable."
+    }
+  ]
+}

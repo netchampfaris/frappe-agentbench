@@ -1,28 +1,747 @@
 {
- "generated_at": "2026-10-30T12:07:21+00:00",
+ "generated_at": "2026-10-30T13:39:12+00:00",
  "tasks": [
   {
    "name": "api-permissions",
    "kind": "build",
    "description": "Add whitelisted API methods with role, ownership and HTTP method checks.",
+   "repo": null,
+   "snapshot": null,
    "issues": []
   },
   {
    "name": "doc-events-hook",
    "kind": "build",
    "description": "React to changes in a core DocType through doc_events hooks.",
+   "repo": null,
+   "snapshot": null,
    "issues": []
   },
   {
    "name": "doctype-validation",
    "kind": "build",
    "description": "Create a DocType with validation rules that query other records.",
+   "repo": null,
+   "snapshot": null,
    "issues": []
+  },
+  {
+   "name": "review-crm-user-access-apis",
+   "kind": "real",
+   "description": "Find real, since fixed vulnerabilities in Frappe CRM: Frappe CRM user and access management: inviting users, accepting invitations, assigning CRM roles, session bootstrap data and saved list views",
+   "repo": "frappe/crm",
+   "snapshot": "106a8553ace2723d38d6253b83b119bb04437368",
+   "issues": [
+    {
+     "id": "update-user-role-privilege-escalation",
+     "category": "security",
+     "note": "update_user_role is open to Sales Manager, but it lets the caller assign 'System Manager' to any user (including themselves) or demote an existing System Manager, then saves with ignore_permissions=True. add_existing_users/add_user reach the same code with any role. Fixed by allowing only System Managers to grant System or Sales Manager or to modify System Managers.",
+     "ghsa": "GHSA-wg3q-hf3h-58rc",
+     "fix_commit": "aac7d942d2a34a0e8ebc3e53aa1ed4cfbe7ce6bc"
+    },
+    {
+     "id": "remove-user-strips-system-manager",
+     "category": "security",
+     "note": "remove_user lets a Sales Manager strip CRM roles from any user, including System Managers, and saves with ignore_permissions=True. Fixed (renamed remove_crm_roles_from_user) by blocking self-removal and changes to System Managers by non-System Managers.",
+     "ghsa": "GHSA-wg3q-hf3h-58rc",
+     "fix_commit": "aac7d942d2a34a0e8ebc3e53aa1ed4cfbe7ce6bc"
+    },
+    {
+     "id": "invite-by-email-role-escalation",
+     "category": "security",
+     "note": "invite_by_email lets a Sales Manager create invitations for the System Manager role (inserted with ignore_permissions). Accepting the invite then grants System Manager. Fixed by requiring System Manager to invite System Managers (10e101eb) and later Sales Managers (35e12912fafaa850cdc2f773602b1bc5d0a172d9).",
+     "ghsa": "GHSA-wg3q-hf3h-58rc",
+     "fix_commit": "10e101ebe75c1a8d9f61083cb186ee6320dfbee5"
+    },
+    {
+     "id": "invitation-key-reusable-after-accept",
+     "category": "security",
+     "note": "accept() only rejects 'Expired' invitations and never clears the key. The guest endpoint crm.api.accept_invitation (api/__init__.py 86-102) calls login_as(invitation.email) whenever status is Accepted, so an already-used key, which is sent in a GET URL and can end up in logs, logs anyone in as that user. Fixed by requiring status == 'Pending' and setting key = None on accept.",
+     "ghsa": "GHSA-wqrv-q8m5-qr77",
+     "fix_commit": "d912975a61f1bba0ac2234f1cbe418d97a1d52e0"
+    },
+    {
+     "id": "session-get-users-no-role-check",
+     "category": "security",
+     "note": "get_users uses frappe.qb.get_query (ignore_permissions defaults to True) and returns every enabled user with email, user_type and full role list to any logged-in user, CRM role or not. Fixed by requiring a CRM role and returning only CRM users to non-System Managers.",
+     "ghsa": "GHSA-wg3q-hf3h-58rc",
+     "fix_commit": "0ebc1bef717e643f4c70122129c48492d51e8fd4"
+    },
+    {
+     "id": "session-get-organizations-no-role-check",
+     "category": "security",
+     "note": "get_organizations returns all CRM Organization fields ('*') through frappe.qb.get_query, which ignores permissions, to any logged-in user. Fixed by requiring a CRM role (get_session_role_flags).",
+     "ghsa": "GHSA-wg3q-hf3h-58rc",
+     "fix_commit": "0ebc1bef717e643f4c70122129c48492d51e8fd4"
+    },
+    {
+     "id": "view-settings-update-no-owner-check",
+     "category": "security",
+     "note": "update(view) loads any CRM View Settings by name and overwrites it. CRM roles have write on the doctype, so any CRM user can change other users' private views and public views. Fixed by adding check_permission(doc): admin/System Manager, Sales Manager for public views, or the view owner.",
+     "ghsa": "GHSA-hfgw-j396-96v6",
+     "fix_commit": "575d7010c9c6305294167c9fa7e7976e3985aced"
+    },
+    {
+     "id": "view-settings-delete-no-owner-check",
+     "category": "security",
+     "note": "delete(name) deletes any CRM View Settings without an ownership check. Fixed with the same check_permission(doc) guard.",
+     "ghsa": "GHSA-hfgw-j396-96v6",
+     "fix_commit": "575d7010c9c6305294167c9fa7e7976e3985aced"
+    }
+   ]
+  },
+  {
+   "name": "review-erpnext-payment-request-bank-import",
+   "kind": "real",
+   "description": "Find real, since fixed vulnerabilities in ERPNext: the Accounts features Payment Request (creating requests, payment emails, payment schedules, subscriptions) and Bank Statement Import (MT940 conversion, preview, import and logs)",
+   "repo": "frappe/erpnext",
+   "snapshot": "e694d45ed49cd00e07a81aab67a4b08ca8516317",
+   "issues": [
+    {
+     "id": "resend-payment-email-no-permission",
+     "category": "security",
+     "note": "Module-level whitelisted resend_payment_email(docname) loads any Payment Request and calls send_email() with no permission or state check, so any logged-in user can make the site email payment links for documents they cannot read. Fixed by replacing it with a POST-only doc method (permission-checked by run_doc_method) that also validates docstatus/type/status, and deduplicating the job.",
+     "ghsa": "GHSA-q8wq-q35q-gj8h",
+     "fix_commit": "0659bd704968543d95af0ba225c5e3aa4a29d987"
+    },
+    {
+     "id": "available-payment-schedules-idor",
+     "category": "security",
+     "note": "get_available_payment_schedules does frappe.get_doc(reference_doctype, reference_name) for any caller-supplied doctype and name and returns its payment_schedule rows (due dates, amounts) without checking read permission. Fixed by ref_doc.check_permission().",
+     "fix_commit": "0e4b384af1c3e565f4ac65190b1c7235e760a8bc"
+    },
+    {
+     "id": "subscription-details-no-permission",
+     "category": "security",
+     "note": "Whitelisted get_subscription_details returns the subscription plans of any Sales Invoice (via frappe.get_all and frappe.get_doc on Subscription) with no read check on the invoice or subscription. Fixed by frappe.has_permission(reference_doctype, 'read', reference_name, throw=True) in a feature fix released in v16.34.0 (not an explicit security commit).",
+     "fix_commit": "4cfa42921f32377c725cd22d3912b9ed140fbd9f"
+    },
+    {
+     "id": "convert-mt940-no-permission",
+     "category": "security",
+     "note": "Whitelisted convert_mt940_to_csv (GET allowed) loads any Bank Statement Import without a permission check, reads a caller-supplied file via frappe.utils.file_manager.get_file (no File permission check) and attaches a new private file to that import. Fixed by doc.check_permission('write') and methods=['POST'].",
+     "fix_commit": "2f82e0dd36fe3b96c04e8c24999863dd32c6db99"
+    },
+    {
+     "id": "bsi-preview-no-permission",
+     "category": "security",
+     "note": "get_preview_from_template returns the parsed contents of any import's file (or a caller-supplied import_file/google_sheets_url) for any Bank Statement Import without a read check, exposing bank transaction data. Fixed by bsi.check_permission().",
+     "fix_commit": "2f82e0dd36fe3b96c04e8c24999863dd32c6db99"
+    },
+    {
+     "id": "bsi-form-start-import-no-permission",
+     "category": "security",
+     "note": "form_start_import starts the background import of any Bank Statement Import with no write check; the job rewrites the Bank's transaction mapping (bank.save) and inserts Bank Transactions. Fixed by bsi.check_permission('write').",
+     "fix_commit": "2f82e0dd36fe3b96c04e8c24999863dd32c6db99"
+    },
+    {
+     "id": "bsi-download-logs-no-permission",
+     "category": "security",
+     "note": "download_errored_template and download_import_log return errored rows and import logs of any Bank Statement Import without a read check. Fixed by check_permission() in both.",
+     "fix_commit": "2f82e0dd36fe3b96c04e8c24999863dd32c6db99"
+    },
+    {
+     "id": "bsi-get-import-status-no-permission",
+     "category": "security",
+     "note": "get_import_status returns status and success/failure counts of any import via frappe.get_doc and frappe.get_all with no permission check. Fixed by data_import.check_permission().",
+     "fix_commit": "9a71ab4d793f410ed3ecc779e46a9007ee77182b"
+    }
+   ]
+  },
+  {
+   "name": "review-erpnext-plant-floor",
+   "kind": "real",
+   "description": "Find real, since fixed vulnerabilities in ERPNext: the manufacturing Workstation and Plant Floor features: job card start and complete actions driven from a workstation, the visual plant floor dashboard, and the plant floor stock summary",
+   "repo": "frappe/erpnext",
+   "snapshot": "d146dc543590d32a29f2e30c1bd5103025a6d52d",
+   "issues": [
+    {
+     "id": "update-job-card-arbitrary-method",
+     "category": "security",
+     "note": "Whitelisted update_job_card takes a caller-supplied `method` and calls doc.run_method(method, **kwargs) on any Job Card with no allow-list and no permission check, so any logged-in user can invoke arbitrary Document methods (cancel, delete, db_set, ...) with arbitrary kwargs on any Job Card. Fixed by adding ALLOWED_JOB_CARD_METHODS and a write check on the Job Card.",
+     "ghsa": "GHSA-c496-q7g2-62vv",
+     "fix_commit": "8db1eb0d27702e85db1a1cd4ed791dcc577adff8"
+    },
+    {
+     "id": "start-job-no-permission",
+     "category": "security",
+     "note": "Workstation.start_job loads any Job Card by caller-supplied name, appends a time log and saves with ignore_permissions=True; only read on the Workstation is needed. Fixed by doc.check_permission('write') and removing ignore_permissions.",
+     "ghsa": "GHSA-fmr9-rm6j-cfpq",
+     "fix_commit": "cf127e89005fd45038870bac95feb7009e95f45f"
+    },
+    {
+     "id": "complete-job-no-permission",
+     "category": "security",
+     "note": "Workstation.complete_job edits time logs/completed qty of any Job Card, saves with ignore_permissions=True and then submits it, with no permission check on the Job Card. Fixed by doc.check_permission('submit') and dropping ignore_permissions (a64466561f).",
+     "ghsa": "GHSA-fmr9-rm6j-cfpq",
+     "fix_commit": "cf127e89005fd45038870bac95feb7009e95f45f"
+    },
+    {
+     "id": "get-raw-materials-no-permission",
+     "category": "security",
+     "note": "Whitelisted get_raw_materials reads Job Card + Job Card Item rows (items, warehouses, quantities) and Bin stock for any job card via frappe.get_all, which skips permission checks. Fixed by frappe.has_permission('Job Card', 'read', doc=job_card, throw=True).",
+     "ghsa": "GHSA-fmr9-rm6j-cfpq",
+     "fix_commit": "cf127e89005fd45038870bac95feb7009e95f45f"
+    },
+    {
+     "id": "workstation-status-image-attribute-xss",
+     "category": "security",
+     "note": "get_workstations copies the raw on_status_image/off_status_image field values into status_image, which visual_plant_floor_template.html (line 11) interpolates into an <img src=\"...\"> attribute without escaping. A user who can edit a Workstation can set the image value to `x\" onerror=...` and run script in the browser of anyone opening the Plant Floor. Fixed by frappe.utils.escape_html on both values (off image in 2d387002d9, on image in 25dfcb17c8). A finding at the template sink (VPT line 11) is equivalent.",
+     "ghsa": "GHSA-8pr6-r75h-h8xx",
+     "fix_commit": "2d387002d93665d63ddf319d2896c3654c5c770c"
+    },
+    {
+     "id": "plant-floor-workstation-name-attribute-xss",
+     "category": "security",
+     "note": "The plant floor client template puts row.name (the user-chosen Workstation name) unescaped into data-workstation=\"...\" and title=\"...\" attributes. Frappe names cannot contain < or >, but a double quote breaks out of the attribute to add event handlers. Fixed by escaping row.name once into row_workstation_name and using it everywhere.",
+     "ghsa": "GHSA-8pr6-r75h-h8xx",
+     "fix_commit": "2d387002d93665d63ddf319d2896c3654c5c770c"
+    },
+    {
+     "id": "get-stock-summary-no-permission",
+     "category": "security",
+     "note": "Whitelisted get_stock_summary returns Bin quantities (actual, projected, reserved) plus item name/group/image for any warehouse, item and item group via a query-builder query that applies no permissions. Any logged-in user can read stock levels of warehouses they have no access to. Fixed by has_permission checks on Warehouse, Item and Item Group.",
+     "ghsa": "GHSA-48wc-j2qh-rcgw",
+     "fix_commit": "0a047b410a5570cd1c2f590db2685e71dfa7f3fc"
+    },
+    {
+     "id": "stock-summary-template-xss",
+     "category": "security",
+     "note": "stock_summary_template.html interpolates row.image into an <img src> attribute and row.item_name into HTML without escaping (the client microtemplate does not auto-escape). A user who can edit an Item can store markup in item_name or a quote-breaking image value. Fixed by frappe.utils.escape_html on image, item_code and item_name.",
+     "ghsa": "GHSA-8pr6-r75h-h8xx",
+     "fix_commit": "3df596d84ecc17c7aa7f3483bde3b12a427c533a"
+    }
+   ]
+  },
+  {
+   "name": "review-erpnext-projects-portal",
+   "kind": "real",
+   "description": "Find real, since fixed vulnerabilities in ERPNext: the Projects module: Project and Timesheet controllers with their whitelisted helpers, and the customer-facing project portal page with its task list template.",
+   "repo": "frappe/erpnext",
+   "snapshot": "e99966a38ec83555919ea1d0f7155e53f6b00a4e",
+   "issues": [
+    {
+     "id": "portal-get-task-html-no-permission",
+     "category": "security",
+     "note": "Whitelisted get_task_html renders the task list (subjects, status, assignees) of any caller-supplied project; get_tasks uses frappe.get_all, so any logged-in user, including website users, can read tasks of any project. The page's get_context checks project membership but this endpoint does not. Fixed by validate_and_get_project_user (get_doc + check_permission). The endpoint was first removed in 7c6b13a838 (v16.22.0), restored by a revert, then fixed properly in 72b72a81fa.",
+     "ghsa": "GHSA-q3vp-8w4j-x78w",
+     "fix_commit": "72b72a81fa8085af3d56c3827ebef70e459fc85c"
+    },
+    {
+     "id": "portal-get-timesheet-html-no-permission",
+     "category": "security",
+     "note": "Whitelisted get_timesheet_html returns timesheet rows (activity, times, status, modifier) of any project via frappe.get_all with no permission or membership check, and ignores the hide_timesheets setting. Fixed together with get_task_html.",
+     "ghsa": "GHSA-q3vp-8w4j-x78w",
+     "fix_commit": "72b72a81fa8085af3d56c3827ebef70e459fc85c"
+    },
+    {
+     "id": "create-duplicate-project-reads-foreign-tasks",
+     "category": "security",
+     "note": "create_duplicate_project trusts the caller-supplied prev_doc and copies every Task of prev_doc['name'] (frappe.get_all + get_doc + copy_doc) into a new project the caller owns, so a user with Project create can clone tasks of a project they cannot read. Fixed by frappe.has_permission('Project', 'read', source_name, throw=True).",
+     "fix_commit": "8c8b282a2ef5f10a22acc5e009863b313f2450bf"
+    },
+    {
+     "id": "update-costing-and-billing-no-write-check",
+     "category": "security",
+     "note": "Whitelisted update_costing_and_billing loads any Project and calls project.db_update() after recomputing costs, with no permission check, so any logged-in user can write to any project row. Fixed by project.check_permission('write').",
+     "fix_commit": "a20fc4f9317ecc7d262625aea680c9a0cda98cef"
+    },
+    {
+     "id": "projectwise-timesheet-data-unscoped",
+     "category": "security",
+     "note": "Whitelisted get_projectwise_timesheet_data returns billing hours, billing amounts, descriptions and currency for any project/timesheet through a raw query-builder join that applies no permissions. Fixed by restricting to frappe.get_list('Timesheet') and frappe.get_list('Project') names.",
+     "fix_commit": "d5df40986d72a55d414ddaf4d382883f9df31e41"
+    },
+    {
+     "id": "timesheet-detail-rate-unscoped",
+     "category": "security",
+     "note": "Whitelisted get_timesheet_detail_rate returns the billing amount of any Timesheet Detail row by name via an unscoped qb query. Fixed by limiting to timesheets returned by frappe.get_list.",
+     "fix_commit": "d5df40986d72a55d414ddaf4d382883f9df31e41"
+    },
+    {
+     "id": "portal-task-subject-xss",
+     "category": "security",
+     "note": "project_tasks.html prints {{ task.subject }} without |e. Frappe's Jinja environment does not auto-escape, so a user who can create a Task (including through the task web form) stores HTML that runs for anyone viewing the project portal or calling get_task_html. Fixed by `| e`.",
+     "fix_commit": "09e1c6024d8ccba49921a3507704d77ce039bb92"
+    },
+    {
+     "id": "portal-assignee-full-name-attribute-xss",
+     "category": "security",
+     "note": "project_tasks.html puts the assigned user's full_name into title=\"...\" without escaping. Any user can set their own full name, so a quote breaks out of the attribute in the session of whoever views the project tasks. Fixed by `| e` (same fix also in project_row.html and project_timesheets.html).",
+     "fix_commit": "4c0f0299ea87d77a1ef4222ab3523c968cff8f0b"
+    }
+   ]
+  },
+  {
+   "name": "review-frappe-desk-utility-endpoints",
+   "kind": "real",
+   "description": "Find real, since fixed vulnerabilities in Frappe Framework: small desk helper endpoints: calendar events and attendance, restoring deleted documents, form tour resets, and SMS sending.",
+   "repo": "frappe/frappe",
+   "snapshot": "1cf89c9bc93b87e4caf32792e231a2403b753497",
+   "issues": [
+    {
+     "id": "get-events-any-user",
+     "category": "security",
+     "note": "Whitelisted get_events accepts a `user` argument and uses it in the owner/DocShare visibility clause, so any user can list another user's private and shared events. Fixed first by a permission check (b4c2a6c6) and then by frappe.only_for('System Manager') when user != session user (93edb6a0b012581bad4e4c25b0c5f2cd2c721696).",
+     "fix_commit": "b4c2a6c617ad9f10d7a7eb5063309479f15a9f05"
+    },
+    {
+     "id": "update-attending-status-idor",
+     "category": "security",
+     "note": "Whitelisted update_attending_status loads any Event and sets the attending status of any participant (attendee is caller-supplied) with frappe.db.set_value; the final has_permission check is evaluated for the attendee, not the caller, and only after the write. Fixed by requiring attendee == caller or owner/write permission.",
+     "fix_commit": "b4c2a6c617ad9f10d7a7eb5063309479f15a9f05"
+    },
+    {
+     "id": "restore-deleted-document-no-permission",
+     "category": "security",
+     "note": "Whitelisted restore (and bulk_restore at 71-93, which calls it) fetches any Deleted Document with frappe.get_doc, recreates the original document and updates the Deleted Document with db_update, without any role or read check. Fixed by frappe.only_for('System Manager') in both endpoints plus create/read checks on the restored doctype.",
+     "ghsa": "GHSA-cjjx-3v2x-37mf",
+     "fix_commit": "f723c23f96161d63da8bcabb2b2670aa52b97f39"
+    },
+    {
+     "id": "reset-tour-any-user",
+     "category": "security",
+     "note": "Whitelisted reset_tour rewrites onboarding_status for every User with frappe.db.set_value and has no role check, so any logged-in user can reset onboarding for the whole site. Fixed by frappe.only_for('System Manager').",
+     "ghsa": "GHSA-9cxj-48g3-jx22",
+     "fix_commit": "1b2cf9456313d2a7085d71ee324cb124d14eba2f"
+    },
+    {
+     "id": "send-sms-no-authorization",
+     "category": "security",
+     "note": "Whitelisted send_sms sends arbitrary messages to arbitrary numbers through the company's SMS gateway (or send_sms hook) with no role or permission check. Fixed by check_sms_permission() (System Manager or roles listed in a new SMS Settings allowed_roles table), with internal callers moved to _send_sms.",
+     "ghsa": "GHSA-wrh5-p77r-jpvq",
+     "fix_commit": "3c311c4bf5b13fefa9404d90503ba68e85087a09"
+    },
+    {
+     "id": "get-contact-number-no-permission",
+     "category": "security",
+     "note": "Whitelisted get_contact_number returns any Contact's mobile/phone with raw SQL and no permission check; the EXISTS subquery is not even correlated with the contact, so any linked record satisfies it. Fixed by has_permission on the Contact and reference doc and a correlated Dynamic Link lookup.",
+     "fix_commit": "e478d6d3ae320029aff600a6ed5113e215dc1a50"
+    }
+   ]
+  },
+  {
+   "name": "review-frappe-document-follow-likes",
+   "kind": "real",
+   "description": "Find real, since fixed vulnerabilities in Frappe Framework: desk social features: following documents (follow/unfollow endpoints and the scheduled change-digest emails), liking documents, and marking login notes as seen.",
+   "repo": "frappe/frappe",
+   "snapshot": "374fa3cf6f8a07bec67e20371d8ca3ba08e422c6",
+   "issues": [
+    {
+     "id": "follow-document-for-any-user",
+     "category": "security",
+     "note": "Whitelisted follow_document takes a `user` argument and never checks it against the session user, so any desk user can subscribe any other user (including to documents chosen by the attacker). Fixed by refusing user != session user (later the parameter was removed and the endpoint always uses frappe.session.user).",
+     "ghsa": "GHSA-fgx7-fvpx-mw3g",
+     "fix_commit": "56c602e94df77b707bf40e3a44b93df18fb9c229"
+    },
+    {
+     "id": "unfollow-document-for-any-user",
+     "category": "security",
+     "note": "Whitelisted unfollow_document takes a `user` argument and deletes that user's Document Follow record with force=True, so anyone can unsubscribe other users. Fixed by rejecting user != session user.",
+     "ghsa": "GHSA-fgx7-fvpx-mw3g",
+     "fix_commit": "56c602e94df77b707bf40e3a44b93df18fb9c229"
+    },
+    {
+     "id": "follow-without-read-permission",
+     "category": "security",
+     "note": "follow_document creates a Document Follow without checking that the follower can read the referenced document; the digest email then sends that document's field changes and comments to the follower. Fixed by frappe.has_permission(doctype, 'read', doc=doc_name, user=user).",
+     "ghsa": "GHSA-fgx7-fvpx-mw3g",
+     "fix_commit": "61d8e6df0601559e31fdc55671c34013556f3beb"
+    },
+    {
+     "id": "digest-stale-authorization",
+     "category": "security",
+     "note": "get_message_for_user builds the digest for every followed document without re-checking read permission at send time, so a user whose access was revoked keeps receiving document data. Fixed by checking has_permission per follow and deleting the follow if access is gone.",
+     "ghsa": "GHSA-wcm9-vvcc-r8pr",
+     "fix_commit": "b845bb047186751464b00c2baaa78e0a318d1ae5"
+    },
+    {
+     "id": "digest-ignores-field-permissions",
+     "category": "security",
+     "note": "get_field_changed (and likewise get_row_changed lines 255-280 and get_added_row lines 283-294) copy every changed field's old/new value from Version data into the email without filtering by the recipient's permlevel read access. Fixed by passing user and skipping fields not in meta.get_permitted_fieldnames(permission_type='read', user=user), with a child-table variant.",
+     "ghsa": "GHSA-7vpf-q96h-59x4",
+     "fix_commit": "fd877f833441f911a5992e22f19047112b5c2587"
+    },
+    {
+     "id": "digest-sent-to-disabled-users",
+     "category": "security",
+     "note": "get_user_list selects recipients by document_follow_notify/frequency only, so disabled users keep receiving document change emails. Fixed by adding .where(User.enabled == 1).",
+     "ghsa": "GHSA-55m4-gj6h-q6rc",
+     "fix_commit": "eff6789bd16f3ba93dee3335c54e36913d4c19af"
+    },
+    {
+     "id": "toggle-like-no-permission-check",
+     "category": "security",
+     "note": "toggle_like/_toggle_like read and write `_liked_by` on any doctype/name and add a Like comment (and may auto-follow) without checking that the caller can read the document. Fixed by frappe.has_permission(doctype, 'read', doc=name, throw=True).",
+     "ghsa": "GHSA-rx6h-4p83-m76x",
+     "fix_commit": "91155d12deba4426cf33196805da77bc78c5cde1"
+    },
+    {
+     "id": "note-mark-as-seen-idor",
+     "category": "security",
+     "note": "Whitelisted mark_as_seen loads any Note by name with frappe.get_doc and saves it with ignore_permissions=True, letting any user modify (append seen_by to) private notes they cannot read. Fixed by note.check_permission('read').",
+     "ghsa": "GHSA-rx6h-4p83-m76x",
+     "fix_commit": "91155d12deba4426cf33196805da77bc78c5cde1"
+    }
+   ]
+  },
+  {
+   "name": "review-frappe-file-handling",
+   "kind": "real",
+   "description": "Find real, since fixed vulnerabilities in Frappe Framework: the File doctype controller and the legacy file manager utilities: creating File records, reading and writing file content on disk, unzipping, attaching files to documents, and File list permissions.",
+   "repo": "frappe/frappe",
+   "snapshot": "374fa3cf6f8a07bec67e20371d8ca3ba08e422c6",
+   "issues": [
+    {
+     "id": "reuse-private-file-url",
+     "category": "security",
+     "note": "before_insert/validate accept a caller-supplied file_url that points at an existing private file and never check the caller can read that file. The new File is owned by the caller, so has_permission grants them access and /private/files download succeeds. Fixed by validate_private_file_access() in before_insert.",
+     "ghsa": "GHSA-gvg7-4p32-j648",
+     "fix_commit": "b33929cea82401c8e8447ec92d8765de99e6a26b"
+    },
+    {
+     "id": "get-content-path-traversal",
+     "category": "security",
+     "note": "get_content reads get_full_path() after only validate_file_url (prefix check). get_full_path only checks is_safe_path, which allows anything inside the site directory, and before_insert calls get_content before validate runs, so a File created with file_url '/files/../../site_config.json' and no content copies site_config.json into a new readable file. Fixed by calling self.validate_file_path() in get_content.",
+     "fix_commit": "f4b4a77737cbdf8b02ac07ea9f2b837a29c7f746"
+    },
+    {
+     "id": "validate-file-path-prefix-check",
+     "category": "security",
+     "note": "validate_file_path uses str.startswith on realpaths, so sibling directories such as public/files_backup pass the containment check (and '..' segments are not rejected). Fixed by rejecting '..' segments and comparing with os.path.commonpath.",
+     "fix_commit": "6b36c710dbe0fd3f2b0c4104a6de4f924a47df8f"
+    },
+    {
+     "id": "attach-without-write-permission",
+     "category": "security",
+     "note": "validate_attachment_references validates only the shape of attached_to_doctype/attached_to_name/attached_to_field and never checks that the user can write to the target document, so a File can be attached to any record via the REST API. Fixed by check_write_permission(attached_to_doctype, attached_to_name) unless ignore_permissions.",
+     "ghsa": "GHSA-fwrv-4rw4-97fw",
+     "fix_commit": "6f23777977b1db02b55dd0569fcdf3fcb6fc9086"
+    },
+    {
+     "id": "unzip-without-permission",
+     "category": "security",
+     "note": "File.unzip (reached from whitelisted frappe.core.api.file.unzip_file via frappe.get_doc, no permission check) extracts any zip File by name without checking the caller can read it. Fixed by self.check_permission('read') in unzip.",
+     "fix_commit": "360527509fc2b6aa057a240cd0551d2e6984d286"
+    },
+    {
+     "id": "file-list-ignores-if-owner",
+     "category": "security",
+     "note": "get_permission_query_conditions lets System Users list every private File attached to any doctype they have some read on, ignoring if_owner (and shares/user permissions), which leaks private-file metadata in list/report views. Fixed by splitting doctypes by owner constraint and adding EXISTS owner checks (later also shares and user permissions).",
+     "ghsa": "GHSA-7cxg-q8x5-rpjh",
+     "fix_commit": "d6e61bc5524f4a291081091349be98bfb52730cd"
+    },
+    {
+     "id": "add-attachments-no-permission",
+     "category": "security",
+     "note": "Whitelisted add_attachments copies any File (by name, including private ones) onto any doctype/name. It checks neither write permission on the target nor read permission on the source file, and save_file then inserts with ignore_permissions. Fixed by has_permission(doctype, 'write', doc=name) and has_permission('File', 'read', doc=a).",
+     "ghsa": "GHSA-fwrv-4rw4-97fw",
+     "fix_commit": "ab070e609049846ee8cbb2aa66c24f4abbc154c6"
+    },
+    {
+     "id": "write-file-path-traversal",
+     "category": "security",
+     "note": "write_file joins the files directory with an unvalidated fname and opens it for writing. A filename with '../', an absolute path or a nested path writes outside the files directory, which can lead to RCE. Callers such as save_file/save_file_on_filesystem pass the uploaded filename through get_file_name, which does not sanitise it. Fixed by requiring realpath(dirname(join(file_path, fname))) == realpath(file_path). Note: no whitelisted entry point in scope calls this directly; the sink is reached through server-side callers (including apps) that pass user filenames.",
+     "ghsa": "GHSA-9pp9-wgp9-3p3j",
+     "fix_commit": "582dc461d81294e768aa394546cdd4576464aac6"
+    }
+   ]
+  },
+  {
+   "name": "review-hrms-payroll-reports",
+   "kind": "real",
+   "description": "Find real, since fixed vulnerabilities in Frappe HR: payroll script reports (Provident Fund Deductions, Professional Tax Deductions, Salary Payments Based on Payment Mode, Salary Payments via ECS) and the Salary Structure controller with its whitelisted helpers.",
+   "repo": "frappe/hrms",
+   "snapshot": "5c969f407d875c534a3665d5b6e1e077e33cbf64",
+   "issues": [
+    {
+     "id": "pf-get-conditions-sqli",
+     "category": "security",
+     "note": "get_conditions builds the WHERE clause with Python %-formatting of report filters (department, branch, company, month, year, mode_of_payment) inside quotes. The result is concatenated into frappe.db.sql in this report, and it is also imported by the Professional Tax and Payment Mode reports. A report user can inject SQL through a filter value. Fixed by returning query-builder criteria and casting month/year to int.",
+     "ghsa": "GHSA-2gv7-x4h2-3737",
+     "fix_commit": "816a45182641912e145b67828c15b7947db7cefe"
+    },
+    {
+     "id": "payment-mode-report-sqli-sink",
+     "category": "security",
+     "note": "get_data interpolates the unsafe conditions string from provident_fund_deductions.get_conditions into two raw frappe.db.sql queries with '%' (here and the branches query at 86-92). This is the report named in the advisory. Fixed by moving to frappe.qb with criteria objects.",
+     "ghsa": "GHSA-2gv7-x4h2-3737",
+     "fix_commit": "816a45182641912e145b67828c15b7947db7cefe"
+    },
+    {
+     "id": "professional-tax-report-sqli-sink",
+     "category": "security",
+     "note": "This report imports the injectable get_conditions and str.format()s its output into frappe.db.sql. Only the IN-list values are parameterised. Fixed in the same query-builder rewrite.",
+     "ghsa": "GHSA-2gv7-x4h2-3737",
+     "fix_commit": "816a45182641912e145b67828c15b7947db7cefe"
+    },
+    {
+     "id": "ecs-report-get-conditions-sqli",
+     "category": "security",
+     "note": "The ECS report has its own copy of get_conditions, which %-formats department/branch/company/month/year into SQL fragments. They are concatenated into frappe.db.sql at 113-119, so any HR User can inject SQL. Fixed by switching to query-builder criteria.",
+     "ghsa": "GHSA-c32r-q985-64xr",
+     "fix_commit": "a7d01fe5f01a17dc9db00f165379c03ebe16770b"
+    },
+    {
+     "id": "salary-component-search-unsanitised-searchfield",
+     "category": "security",
+     "note": "get_salary_component is a whitelisted link-search query (doctype, txt, searchfield, ...) without @frappe.validate_and_sanitize_search_inputs. The caller-controlled searchfield is used as a column via sc[searchfield] and txt goes into LIKE, which allows SQL injection by any logged-in user. Fixed by adding @frappe.validate_and_sanitize_search_inputs.",
+     "ghsa": "GHSA-jfmr-9jv9-mrw4",
+     "fix_commit": "50e9e14e21bb2bdd57b0abc168f0292703daae25"
+    },
+    {
+     "id": "make-salary-slip-client-ignore-permissions",
+     "category": "security",
+     "note": "The whitelisted make_salary_slip accepts ignore_permissions from the HTTP caller and forwards it to get_mapped_doc (line 405). Any user can map a Salary Structure they cannot read into a Salary Slip, and with as_print=1 for an arbitrary employee can render salary details. Fixed by removing the parameter (9b4f3a34); a later commit added an Employee read check (94ed07a). No advisory names this; the fix shipped in v15.64.6 / v16.8.0 alongside other access-control fixes.",
+     "fix_commit": "9b4f3a34499b8458fb97aada060347d9f64a9759"
+    }
+   ]
+  },
+  {
+   "name": "review-hrms-pwa-api",
+   "kind": "real",
+   "description": "Find real, since fixed vulnerabilities in Frappe HR: the whitelisted API layer behind the HRMS employee mobile app (PWA) and the shift roster UI: attendance, shifts, leave balances, expense claims, advances, attachments and roster helpers.",
+   "repo": "frappe/hrms",
+   "snapshot": "c165d5839fea2c4c8cfa1f89c225789a64fb961e",
+   "issues": [
+    {
+     "id": "roster-get-values-arbitrary-read",
+     "category": "security",
+     "note": "Whitelisted get_values(doctype, name, fields) calls frappe.db.get_value with caller-chosen doctype and fields and no permission check, so any logged-in user can read any field of any record (e.g. User, Salary Slip). Fixed by deleting the endpoint; the roster UI now uses frappe.client.get_value, which checks permissions.",
+     "ghsa": "GHSA-4375-7rxj-9hfx",
+     "fix_commit": "4ca429d2fd091f66b20581cd4a50ad45346f86a6"
+    },
+    {
+     "id": "get-attachments-no-permission",
+     "category": "security",
+     "note": "get_attachments(dt, dn) delegates to frappe.desk.form.load.get_attachments, an internal helper that uses frappe.get_all on File and never checks access to the parent record. Any user can list (and learn the URLs of) private files attached to any document. First fixed by switching to frappe.get_list on File; later hardened with frappe.has_permission(dt, 'read', dn) (GHSA-p8rg-rfhr-fcx2, commit 68dd57aa10e0dd6ebcbd2b7ec1fea5def8b12885).",
+     "ghsa": "GHSA-6cg5-4q6m-vrgm",
+     "fix_commit": "cda9063daac3a8f2b27485b49fd3ed21dc19eba9"
+    },
+    {
+     "id": "get-all-employees-bypasses-permissions",
+     "category": "security",
+     "note": "get_all_employees uses frappe.get_all (no permission or user-permission filtering) with limit 999999, so any user gets the whole employee directory across companies (names, user ids, departments, reports_to). Fixed by switching to frappe.get_list.",
+     "ghsa": "GHSA-wfc6-cw72-cvhx",
+     "fix_commit": "df957cb3f648b5db8a0adf0de35e1fc7a842b8fd"
+    },
+    {
+     "id": "attendance-calendar-employee-idor",
+     "category": "security",
+     "note": "get_attendance_calendar_events trusts the caller-supplied employee and reads Attendance/Holiday with frappe.get_all, so any user can read another employee's attendance calendar. Fixed by dropping the employee parameter and resolving the employee from the session user (get_current_employee).",
+     "ghsa": "GHSA-wfc6-cw72-cvhx",
+     "fix_commit": "6791d952e8badee00963dcf0349b6b72f9be8899"
+    },
+    {
+     "id": "get-shifts-employee-idor",
+     "category": "security",
+     "note": "get_shifts(employee) runs a raw query-builder query on Shift Assignment filtered only by the caller-supplied employee; query builder applies no permissions, so any user can read anyone's shift assignments. Fixed by resolving the employee from the session user.",
+     "ghsa": "GHSA-wfc6-cw72-cvhx",
+     "fix_commit": "8c0ce5bfea51d0771626cd24ddb04b9c6c8ebf67"
+    },
+    {
+     "id": "leave-balance-map-employee-idor",
+     "category": "security",
+     "note": "get_leave_balance_map(employee) passes the caller-supplied employee to leave_application.get_leave_details, which (at this snapshot) has no permission check, exposing any employee's leave allocations and balances. Fixed by resolving the employee from the session user; get_leave_details itself later got an Employee read check (GHSA-9jpf-5vrm-hpcj, 7cf3240e08dc1a4ac79b71dd053b7be836c206ae).",
+     "ghsa": "GHSA-wfc6-cw72-cvhx",
+     "fix_commit": "8c0ce5bfea51d0771626cd24ddb04b9c6c8ebf67"
+    },
+    {
+     "id": "expense-claim-summary-employee-idor",
+     "category": "security",
+     "note": "get_expense_claim_summary(employee) aggregates Expense Claim amounts with frappe.qb for any caller-supplied employee (filter at line 565), leaking other employees' pending/approved/rejected claim totals. Fixed by resolving the employee from the session user.",
+     "ghsa": "GHSA-wfc6-cw72-cvhx",
+     "fix_commit": "6791d952e8badee00963dcf0349b6b72f9be8899"
+    },
+    {
+     "id": "employee-advance-balance-employee-idor",
+     "category": "security",
+     "note": "get_employee_advance_balance(employee) reads Employee Advance rows via frappe.qb for any caller-supplied employee (filter at line 635), exposing other employees' advances, purposes and balances. Fixed by resolving the employee from the session user.",
+     "ghsa": "GHSA-wfc6-cw72-cvhx",
+     "fix_commit": "6791d952e8badee00963dcf0349b6b72f9be8899"
+    }
+   ]
+  },
+  {
+   "name": "review-lms-enrollment-and-certification",
+   "kind": "real",
+   "description": "Find real, since fixed vulnerabilities in Frappe Learning: course and batch detail APIs, self-enrollment into courses, batches and programs, batch enrollment controller, and certificate issuing and website visibility in Frappe Learning.",
+   "repo": "frappe/lms",
+   "snapshot": "6c2978306c55a5e862d5e3e9a76eca1b34f2f6b6",
+   "issues": [
+    {
+     "id": "course-details-unpublished-exposed",
+     "category": "security",
+     "note": "get_course_details() is allow_guest and returns full details (description, price, lessons, instructors) for any course name, including unpublished courses, with no published/can-modify check. Fixed by returning {} for unpublished courses unless can_modify_course().",
+     "ghsa": "GHSA-26vf-p39q-frx3",
+     "fix_commit": "24a511f48e233d6422355840bf00be894311ac2a"
+    },
+    {
+     "id": "batch-details-leaks-student-list",
+     "category": "security",
+     "note": "get_batch_details() (allow_guest) sets batch_details.students to the full list of enrolled members' user IDs (emails) for every caller who can see the batch, e.g. anyone for a published batch. Fixed by returning the list only to batch admins (can_modify_batch) and just [session user] to enrolled students.",
+     "ghsa": "GHSA-3gw9-gwjm-vcq5",
+     "fix_commit": "24a511f48e233d6422355840bf00be894311ac2a"
+    },
+    {
+     "id": "enroll-in-batch-no-eligibility-check",
+     "category": "security",
+     "note": "Whitelisted enroll_in_batch() only checks duplicates and seat count; it does not check that the batch is published, allows self-enrollment, or (for paid batches) that payment_name refers to a received payment, so students can self-enroll into unpublished or paid batches. Fixed by validate_enrollment_eligibility().",
+     "ghsa": "GHSA-2ch7-c74m-432m",
+     "fix_commit": "b3e90c7f2fac0a8d159a4e24c0266146d1e7429e"
+    },
+    {
+     "id": "enroll-in-program-unpublished",
+     "category": "security",
+     "note": "enroll_in_program() inserts an LMS Program Member with ignore_permissions for any program name without checking that the program is published. Fixed by rejecting unpublished programs.",
+     "ghsa": "GHSA-2ch7-c74m-432m",
+     "fix_commit": "836a6d12035425ba929b7e87a409bad0a6bf46c5"
+    },
+    {
+     "id": "create-membership-no-eligibility-check",
+     "category": "security",
+     "note": "Whitelisted create_membership() only refuses when disable_self_learning is set; it enrolls in unpublished and paid courses without a payment check, and also accepts an arbitrary member argument. Fixed by validate_course_enrollment_eligibility() (published + payment checks); the member parameter was only locked down later.",
+     "ghsa": "GHSA-2ch7-c74m-432m",
+     "fix_commit": "466b248c30c03a5bb733b9c8dd3dd56a6dc9809d"
+    },
+    {
+     "id": "batch-enrollment-for-other-users",
+     "category": "security",
+     "note": "LMSBatchEnrollment.validate() has no check that a non-staff creator is enrolling themselves, so a student with create permission can create LMS Batch Enrollment rows for other users (and, via validate_course_enrollment, auto-create LMS Enrollments for them). Fixed by validate_owner() requiring Moderator/Batch Evaluator when owner != member.",
+     "ghsa": "GHSA-2ch7-c74m-432m",
+     "fix_commit": "836a6d12035425ba929b7e87a409bad0a6bf46c5"
+    },
+    {
+     "id": "certificate-without-completion",
+     "category": "security",
+     "note": "Whitelisted create_certificate(course) issues an LMS Certificate for the caller with ignore_permissions without checking enrollment, that certification is enabled, or that progress is 100%; LMSCertificate.validate() only checks duplicates. Fixed by validate_certification_eligibility().",
+     "ghsa": "GHSA-2ch7-c74m-432m",
+     "fix_commit": "836a6d12035425ba929b7e87a409bad0a6bf46c5"
+    },
+    {
+     "id": "unpublished-certificate-website-read",
+     "category": "security",
+     "note": "has_website_permission() grants read/print on every LMS Certificate regardless of its published flag, so unpublished certificates (and member details) are viewable by anyone via the website/print routes. Fixed by also requiring doc.published.",
+     "ghsa": "GHSA-xjj9-h64v-254g",
+     "fix_commit": "e0a898825ebf924f376ff8985c4248fc48139cf5"
+    }
+   ]
+  },
+  {
+   "name": "review-lms-public-pages-and-scorm",
+   "kind": "real",
+   "description": "Find real, since fixed vulnerabilities in Frappe Learning: server-rendered SEO/meta tags for the Learning SPA shell, the SCORM package upload/extraction and file-serving renderer, and the general LMS whitelisted API module (certified participants, profiles, meta tags, video tracking).",
+   "repo": "frappe/lms",
+   "snapshot": "82f0bb40ef548880bb62a441c802e837dc89e367",
+   "issues": [
+    {
+     "id": "scorm-renderer-path-traversal",
+     "category": "security",
+     "note": "SCORMRenderer.render() joins the request path (any path containing 'scorm/') onto the site's public dir and serves the file with no realpath containment check, so /scorm/../../site_config.json style requests read arbitrary files (site_config.json, private files). The os.walk fallback (41-56) has the same problem. Fixed by _is_safe_path() checks against public/scorm. Fix landed in v2.52.1 tag although the advisory says 2.52.0.",
+     "ghsa": "GHSA-3mq2-3c8v-m92j",
+     "fix_commit": "e1b425ed5bf0fc9c373efc1ba235c7c70e23d465"
+    },
+    {
+     "id": "scorm-zip-slip-extraction",
+     "category": "security",
+     "note": "extract_package() calls ZipFile.extractall() on an uploaded SCORM zip into public/scorm/<course>/<title> with no member-path validation (and title is caller-controlled), so a crafted archive or chapter title writes files outside the SCORM directory (e.g. into public/ or app paths). Fixed by realpath-validating the extract path and each zip member before extracting.",
+     "ghsa": "GHSA-mxh7-g3r7-g96h",
+     "fix_commit": "bb1b1f6adc6ab880b9a2c768fa7056450ccf70f9"
+    },
+    {
+     "id": "seo-meta-html-entity-decoding-xss",
+     "category": "security",
+     "note": "get_meta_from_document() strips rich-text description with BeautifulSoup.get_text(), which decodes entities like &lt;script&gt; back into raw markup, and returns it for the unescaped {{ meta.description }} in frontend/index.html; stored payloads in course description (and the identical batch_details 137-139/164-166, job description 192-194, user bio 222-224 branches) execute for any visitor including guests. Fixed by escape_html(soup.get_text()) in all branches (and later '| e' in index.html).",
+     "ghsa": "GHSA-2x47-gr9q-w6fv",
+     "fix_commit": "efda1591917b69b1588f9a0a0bd288e57827fe22"
+    },
+    {
+     "id": "meta-tags-stored-unsanitised",
+     "category": "security",
+     "note": "update_meta_info() stores Website Meta Tag values verbatim; validate_meta_tags() only checks the type. _lms.get_meta() copies these values into meta title/description/image/link that index.html renders without escaping, so a Course Creator/Batch Evaluator can store XSS in the page head for all visitors. Fixed by strip_html_tags on each value (and escaping in index.html).",
+     "ghsa": "GHSA-9fqj-95wr-6hm6",
+     "fix_commit": "f244a6c9ff6e0b104fec48b2d97af4cc09896b60"
+    },
+    {
+     "id": "certified-participants-leaks-email",
+     "category": "security",
+     "note": "get_certified_participants() returns each row's 'member' field (the user's email/name) along with profile details to any logged-in user, allowing harvesting of every certified member's email address. Fixed by popping 'member' from each participant.",
+     "ghsa": "GHSA-wxrc-h8qf-x3fx",
+     "fix_commit": "4703d4dde3468819bce12b78959ac4c1098aae1c"
+    },
+    {
+     "id": "profile-details-disclosure-and-oracle",
+     "category": "security",
+     "note": "get_profile_details() reads the target user and calls frappe.get_roles(details.name) before the has_lms_role() check, returns the user's full role list (System Manager etc.) and email (name) to any LMS user, and raises a 500 on unknown usernames (details is None) versus 200 on valid ones, an account-enumeration oracle. Fixed by authorising first, throwing DoesNotExistError, and filtering roles for non-owners.",
+     "ghsa": "GHSA-ccm8-xq6c-9fmj",
+     "fix_commit": "7016946dcb3896f2816322637c3357667fe029f4"
+    },
+    {
+     "id": "video-watch-tracking-no-lesson-access",
+     "category": "security",
+     "note": "track_video_watch_duration() lets any logged-in user create/update LMS Video Watch Duration records for any lesson name with an arbitrary watch_time, without checking access to the lesson's course. Fixed by requiring can_access_lesson(lesson).",
+     "ghsa": "GHSA-xvj8-v87h-68vw",
+     "fix_commit": "7016946dcb3896f2816322637c3357667fe029f4"
+    }
+   ]
+  },
+  {
+   "name": "review-lms-quiz-and-checkout",
+   "kind": "real",
+   "description": "Find real, since fixed vulnerabilities in Frappe Learning: quiz submission and scoring, the quiz submission doctype and its permissions, paid course/batch checkout, and course enrollment validation in Frappe Learning.",
+   "repo": "frappe/lms",
+   "snapshot": "8fa5c899ff355a74771142d9478dd40fa7f2ffe9",
+   "issues": [
+    {
+     "id": "quiz-score-trusts-client-correctness",
+     "category": "security",
+     "note": "process_results() decides whether each answer is correct from the client-sent result['is_correct'] list and awards full marks accordingly; a student can mark every answer correct in the request and pass. Fixed by recomputing correctness on the server from LMS Question (verify_answer) and ignoring client is_correct (also renamed quiz_summary to submit_quiz). Landed in v2.47.0 although the advisory says 2.46.0.",
+     "ghsa": "GHSA-9573-68xq-hwrx",
+     "fix_commit": "cb01e17aa7aca0db13e820d7c1e6b32443a46dc8"
+    },
+    {
+     "id": "quiz-submit-without-quiz-access",
+     "category": "security",
+     "note": "Whitelisted quiz_summary() accepts any quiz name from any logged-in user with no check that the caller is enrolled in the quiz's course (or that the quiz is reachable), so students can submit quizzes of paid/unenrolled courses, record progress via save_progress_after_quiz, and use the returned score as an answer oracle. Fixed by gating submit_quiz on can_access_quiz().",
+     "ghsa": "GHSA-xvj8-v87h-68vw",
+     "fix_commit": "92050caa8e9cf5770a6e40589f2371631225415d"
+    },
+    {
+     "id": "quiz-submission-direct-rest-write",
+     "category": "security",
+     "note": "LMS Student is granted create and write (if_owner) on LMS Quiz Submission, so a student can POST/PUT the doc through /api/resource directly with arbitrary result rows; LMSQuizSubmission.validate_marks() just sums the client-supplied row.marks, recording a perfect score without any answer being checked. Fixed by removing create/write for LMS Student (and making member read-only).",
+     "ghsa": "GHSA-4566-2phx-68gh",
+     "fix_commit": "876504f3900512f528b6e4a7bd3a15673eedd386"
+    },
+    {
+     "id": "quiz-submission-member-forgery-attempts",
+     "category": "security",
+     "note": "The member field is client-writable and validate_if_max_attempts_exceeded() counts attempts for frappe.session.user rather than self.member, so a student can create submissions attributed to another user (forged results) and exhaust that user's max_attempts, blocking their legitimate attempt. Fixed by counting by self.member and making member read_only (plus removing direct create).",
+     "ghsa": "GHSA-4566-2phx-68gh",
+     "fix_commit": "876504f3900512f528b6e4a7bd3a15673eedd386"
+    },
+    {
+     "id": "checkout-client-controlled-price",
+     "category": "security",
+     "note": "Whitelisted get_payment_link() takes amount, discount_amount, gst_amount, currency and title from the client and uses them to create the LMS Payment and the gateway order, so a user can pay any amount (e.g. 1) for a paid course, batch or certificate. Fixed by dropping these params and computing the price server-side via get_order_summary(doctype, docname, coupon, country).",
+     "ghsa": "GHSA-g5jj-q8m7-359c",
+     "fix_commit": "1d04f4fd917b62f5dd4442a541280fc40a4178b4"
+    },
+    {
+     "id": "enrollment-paid-course-via-unrelated-batch",
+     "category": "security",
+     "note": "validate_course_enrollment_eligibility() returns early (skipping the published and paid-course payment checks) whenever enrollment_from_batch names any batch the member is enrolled in, without verifying that the batch actually contains this course; enrolling in a free batch unlocks any paid course. Fixed by requiring a matching Batch Course row.",
+     "ghsa": "GHSA-c4xh-2rcm-6mgc",
+     "fix_commit": "c3e3337de425d338b347e9f8c782e8b9df1deed4"
+    }
+   ]
   },
   {
    "name": "review-travel-claims",
    "kind": "review",
    "description": "Review a travel claims feature for security issues, bugs and non-standard patterns.",
+   "repo": null,
+   "snapshot": null,
    "issues": [
     {
      "id": "date-comparison-type-error",

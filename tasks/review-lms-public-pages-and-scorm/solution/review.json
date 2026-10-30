@@ -1,0 +1,46 @@
+{
+  "findings": [
+    {
+      "file": "lms/page_renderers.py",
+      "line": 19,
+      "category": "security",
+      "summary": "SCORMRenderer.render() joins the request path (any path containing 'scorm/') onto the site's public dir and serves the file with no realpath containment check, so /scorm/../../site_config.json style requests read arbitrary files (site_config.json, private files). The os.walk fallback (41-56) has the same problem. Fixed by _is_safe_path() checks against public/scorm. Fix landed in v2.52.1 tag although the advisory says 2.52.0."
+    },
+    {
+      "file": "lms/lms/api.py",
+      "line": 970,
+      "category": "security",
+      "summary": "extract_package() calls ZipFile.extractall() on an uploaded SCORM zip into public/scorm/<course>/<title> with no member-path validation (and title is caller-controlled), so a crafted archive or chapter title writes files outside the SCORM directory (e.g. into public/ or app paths). Fixed by realpath-validating the extract path and each zip member before extracting."
+    },
+    {
+      "file": "lms/www/_lms.py",
+      "line": 110,
+      "category": "security",
+      "summary": "get_meta_from_document() strips rich-text description with BeautifulSoup.get_text(), which decodes entities like &lt;script&gt; back into raw markup, and returns it for the unescaped {{ meta.description }} in frontend/index.html; stored payloads in course description (and the identical batch_details 137-139/164-166, job description 192-194, user bio 222-224 branches) execute for any visitor including guests. Fixed by escape_html(soup.get_text()) in all branches (and later '| e' in index.html)."
+    },
+    {
+      "file": "lms/lms/api.py",
+      "line": 1505,
+      "category": "security",
+      "summary": "update_meta_info() stores Website Meta Tag values verbatim; validate_meta_tags() only checks the type. _lms.get_meta() copies these values into meta title/description/image/link that index.html renders without escaping, so a Course Creator/Batch Evaluator can store XSS in the page head for all visitors. Fixed by strip_html_tags on each value (and escaping in index.html)."
+    },
+    {
+      "file": "lms/lms/api.py",
+      "line": 299,
+      "category": "security",
+      "summary": "get_certified_participants() returns each row's 'member' field (the user's email/name) along with profile details to any logged-in user, allowing harvesting of every certified member's email address. Fixed by popping 'member' from each participant."
+    },
+    {
+      "file": "lms/lms/api.py",
+      "line": 1745,
+      "category": "security",
+      "summary": "get_profile_details() reads the target user and calls frappe.get_roles(details.name) before the has_lms_role() check, returns the user's full role list (System Manager etc.) and email (name) to any LMS user, and raises a 500 on unknown usernames (details is None) versus 200 on valid ones, an account-enumeration oracle. Fixed by authorising first, throwing DoesNotExistError, and filtering roles for non-owners."
+    },
+    {
+      "file": "lms/lms/api.py",
+      "line": 1608,
+      "category": "security",
+      "summary": "track_video_watch_duration() lets any logged-in user create/update LMS Video Watch Duration records for any lesson name with an arbitrary watch_time, without checking access to the lesson's course. Fixed by requiring can_access_lesson(lesson)."
+    }
+  ]
+}

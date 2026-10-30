@@ -1,0 +1,70 @@
+{
+  "findings": [
+    {
+      "file": "hrms/api/roster.py",
+      "line": 17,
+      "category": "security",
+      "summary": "Whitelisted get_values(doctype, name, fields) calls frappe.db.get_value with caller-chosen doctype and fields and no permission check, so any logged-in user can read any field of any record (e.g. User, Salary Slip). Fixed by deleting the endpoint; the roster UI now uses frappe.client.get_value, which checks permissions."
+    },
+    {
+      "file": "hrms/api/__init__.py",
+      "line": 706,
+      "category": "security",
+      "summary": "get_attachments(dt, dn) delegates to frappe.desk.form.load.get_attachments, an internal helper that uses frappe.get_all on File and never checks access to the parent record. Any user can list (and learn the URLs of) private files attached to any document. First fixed by switching to frappe.get_list on File; later hardened with frappe.has_permission(dt, 'read', dn) (GHSA-p8rg-rfhr-fcx2, commit 68dd57aa10e0dd6ebcbd2b7ec1fea5def8b12885)."
+    },
+    {
+      "file": "hrms/api/__init__.py",
+      "line": 62,
+      "category": "security",
+      "summary": "get_all_employees uses frappe.get_all (no permission or user-permission filtering) with limit 999999, so any user gets the whole employee directory across companies (names, user ids, departments, reports_to). Fixed by switching to frappe.get_list."
+    },
+    {
+      "file": "hrms/api/__init__.py",
+      "line": 121,
+      "category": "security",
+      "summary": "get_attendance_calendar_events trusts the caller-supplied employee and reads Attendance/Holiday with frappe.get_all, so any user can read another employee's attendance calendar. Fixed by dropping the employee parameter and resolving the employee from the session user (get_current_employee)."
+    },
+    {
+      "file": "hrms/api/__init__.py",
+      "line": 300,
+      "category": "security",
+      "summary": "get_shifts(employee) runs a raw query-builder query on Shift Assignment filtered only by the caller-supplied employee; query builder applies no permissions, so any user can read anyone's shift assignments. Fixed by resolving the employee from the session user."
+    },
+    {
+      "file": "hrms/api/__init__.py",
+      "line": 368,
+      "category": "security",
+      "summary": "get_leave_balance_map(employee) passes the caller-supplied employee to leave_application.get_leave_details, which (at this snapshot) has no permission check, exposing any employee's leave allocations and balances. Fixed by resolving the employee from the session user; get_leave_details itself later got an Employee read check (GHSA-9jpf-5vrm-hpcj, 7cf3240e08dc1a4ac79b71dd053b7be836c206ae)."
+    },
+    {
+      "file": "hrms/api/__init__.py",
+      "line": 528,
+      "category": "security",
+      "summary": "get_expense_claim_summary(employee) aggregates Expense Claim amounts with frappe.qb for any caller-supplied employee (filter at line 565), leaking other employees' pending/approved/rejected claim totals. Fixed by resolving the employee from the session user."
+    },
+    {
+      "file": "hrms/api/__init__.py",
+      "line": 617,
+      "category": "security",
+      "summary": "get_employee_advance_balance(employee) reads Employee Advance rows via frappe.qb for any caller-supplied employee (filter at line 635), exposing other employees' advances, purposes and balances. Fixed by resolving the employee from the session user."
+    },
+    {
+      "file": "hrms/api/__init__.py",
+      "line": 654,
+      "category": "security",
+      "summary": "Whitelisted get_company_currencies builds a raw frappe.qb query over Company joined to Currency, which applies no permissions, so any logged-in user (Employee role is enough) lists every company on the site with its default currency, including companies outside their user permissions. Fixed by reading companies through frappe.get_list (with a test that a company-restricted user sees only their company)."
+    },
+    {
+      "file": "hrms/api/__init__.py",
+      "line": 739,
+      "category": "security",
+      "summary": "upload_base64_file(content, filename, dt, dn, fieldname) inserts a File attached to a caller-chosen doctype/name without checking write permission on that parent, so any user can attach files to records they cannot edit (and set attached_to_field). Fixed by adding frappe.has_permission(dt, 'write', dn, throw=True) before the insert."
+    },
+    {
+      "file": "hrms/api/roster.py",
+      "line": 230,
+      "category": "security",
+      "summary": "roster.get_events (whitelisted) calls get_leaves, which reads Leave Application joined to Employee with a raw frappe.qb query (no permission or user-permission filtering), so any logged-in user sees every employee's approved leaves (the sibling get_shifts at 254-286 has the same flaw for Shift Assignments). Fixed by building both queries with frappe.qb.get_query(..., ignore_permissions=False)."
+    }
+  ]
+}

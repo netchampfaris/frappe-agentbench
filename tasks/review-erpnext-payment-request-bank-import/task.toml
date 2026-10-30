@@ -1,0 +1,18 @@
+schema_version = "1.4"
+
+[task]
+name = "frappe-agentbench/review-erpnext-payment-request-bank-import"
+version = "1.0.0"
+description = "Find real, since fixed vulnerabilities in ERPNext: the Accounts features Payment Request (creating requests, payment emails, payment schedules, subscriptions) and Bank Statement Import (MT940 conversion, preview, import and logs)"
+keywords = ["review", "security", "real-code", "erpnext"]
+
+[verifier]
+timeout_sec = 120.0
+environment_mode = "shared"
+
+[agent]
+timeout_sec = 1800.0
+
+[environment]
+network_mode = "public"
+build_timeout_sec = 900.0

@@ -85,12 +85,18 @@ def load_tasks() -> list[dict]:
 	for toml in sorted(TASKS.glob("*/task.toml")):
 		config = tomllib.loads(toml.read_text())["task"]
 		issues_file = toml.parent / "tests/issues.json"
-		issues = json.loads(issues_file.read_text())["issues"] if issues_file.exists() else []
+		key = json.loads(issues_file.read_text()) if issues_file.exists() else {"issues": []}
 		tasks.append({
 			"name": toml.parent.name,
-			"kind": "review" if issues else "build",
+			# A review key with a repo is a snapshot of real code before its fixes.
+			"kind": "real" if "repo" in key else "review" if key["issues"] else "build",
 			"description": config.get("description", ""),
-			"issues": [{"id": i["id"], "category": i["category"], "note": i["note"]} for i in issues],
+			"repo": key.get("repo"),
+			"snapshot": key.get("snapshot"),
+			"issues": [
+				{k: i[k] for k in ("id", "category", "note", "ghsa", "fix_commit") if i.get(k)}
+				for i in key["issues"]
+			],
 		})
 	return tasks
 

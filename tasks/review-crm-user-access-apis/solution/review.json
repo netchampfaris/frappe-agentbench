@@ -1,0 +1,58 @@
+{
+  "findings": [
+    {
+      "file": "crm/api/user.py",
+      "line": 26,
+      "category": "security",
+      "summary": "update_user_role is open to Sales Manager, but it lets the caller assign 'System Manager' to any user (including themselves) or demote an existing System Manager, then saves with ignore_permissions=True. add_existing_users/add_user reach the same code with any role. Fixed by allowing only System Managers to grant System or Sales Manager or to modify System Managers."
+    },
+    {
+      "file": "crm/api/user.py",
+      "line": 63,
+      "category": "security",
+      "summary": "remove_user lets a Sales Manager strip CRM roles from any user, including System Managers, and saves with ignore_permissions=True. Fixed (renamed remove_crm_roles_from_user) by blocking self-removal and changes to System Managers by non-System Managers."
+    },
+    {
+      "file": "crm/api/__init__.py",
+      "line": 105,
+      "category": "security",
+      "summary": "invite_by_email lets a Sales Manager create invitations for the System Manager role (inserted with ignore_permissions). Accepting the invite then grants System Manager. Fixed by requiring System Manager to invite System Managers (10e101eb) and later Sales Managers (35e12912fafaa850cdc2f773602b1bc5d0a172d9)."
+    },
+    {
+      "file": "crm/fcrm/doctype/crm_invitation/crm_invitation.py",
+      "line": 58,
+      "category": "security",
+      "summary": "accept() only rejects 'Expired' invitations and never clears the key. The guest endpoint crm.api.accept_invitation (api/__init__.py 86-102) calls login_as(invitation.email) whenever status is Accepted, so an already-used key, which is sent in a GET URL and can end up in logs, logs anyone in as that user. Fixed by requiring status == 'Pending' and setting key = None on accept."
+    },
+    {
+      "file": "crm/api/session.py",
+      "line": 4,
+      "category": "security",
+      "summary": "get_users uses frappe.qb.get_query (ignore_permissions defaults to True) and returns every enabled user with email, user_type and full role list to any logged-in user, CRM role or not. Fixed by requiring a CRM role and returning only CRM users to non-System Managers."
+    },
+    {
+      "file": "crm/api/session.py",
+      "line": 55,
+      "category": "security",
+      "summary": "get_organizations returns all CRM Organization fields ('*') through frappe.qb.get_query, which ignores permissions, to any logged-in user. Fixed by requiring a CRM role (get_session_role_flags)."
+    },
+    {
+      "file": "crm/fcrm/doctype/crm_view_settings/crm_view_settings.py",
+      "line": 100,
+      "category": "security",
+      "summary": "update(view) loads any CRM View Settings by name and overwrites it. CRM roles have write on the doctype, so any CRM user can change other users' private views and public views. Fixed by adding check_permission(doc): admin/System Manager, Sales Manager for public views, or the view owner."
+    },
+    {
+      "file": "crm/fcrm/doctype/crm_view_settings/crm_view_settings.py",
+      "line": 119,
+      "category": "security",
+      "summary": "delete(name) deletes any CRM View Settings without an ownership check. Fixed with the same check_permission(doc) guard."
+    },
+    {
+      "file": "crm/fcrm/doctype/crm_view_settings/crm_view_settings.py",
+      "line": 138,
+      "category": "security",
+      "summary": "pin(name, value) loads any CRM View Settings record by name and saves pinned=value with no check that the caller owns the view (or is a manager for a public view), so any user can pin or unpin other users' views. Fixed by calling the new check_permission(doc) helper, as for update and delete."
+    }
+  ]
+}

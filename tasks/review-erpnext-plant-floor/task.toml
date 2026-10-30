@@ -1,0 +1,18 @@
+schema_version = "1.4"
+
+[task]
+name = "frappe-agentbench/review-erpnext-plant-floor"
+version = "1.0.0"
+description = "Find real, since fixed vulnerabilities in ERPNext: the manufacturing Workstation and Plant Floor features: job card start and complete actions driven from a workstation, the visual plant floor dashboard, and the plant floor stock summary"
+keywords = ["review", "security", "real-code", "erpnext"]
+
+[verifier]
+timeout_sec = 120.0
+environment_mode = "shared"
+
+[agent]
+timeout_sec = 1800.0
+
+[environment]
+network_mode = "public"
+build_timeout_sec = 900.0
